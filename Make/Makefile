@@ -1,4 +1,7 @@
 all:
-	g++  -std=c++17   ../Source/main.cpp    ../Source/Shader.cpp -o Output/binary/main  -lGL -lGLU -lglfw3 -lX11 -lXxf86vm -lXrandr -lpthread -lXi -ldl -lXinerama -lXcursor -lGLEW
+	g++  -std=c++11   ../Source/*.cpp  ../System_Files/support_files/*.cpp  -O3 -o Output/binary/raytracer  
+debug:
+	g++  -std=c++11   ../Source/*.cpp  ../System_Files/support_files/*.cpp  -O3 -o Output/binary/raytracer_debug -g
+
 clean:
 	rm Output/binary/*

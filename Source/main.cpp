@@ -1,15 +1,20 @@
-#include <GL/glew.h>
-#include <GL/glut.h>
-#include <GLFW/glfw3.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <string>
 #include <sstream>
 #include <iostream>
 #include <fstream>
-#include <vector> 
-int main()
+#include <vector>
+#include "../Header/Ray.h"
+#include "../Header/Scene.h"
+#include "../System_Files/support_files/ppm.h"
+#include "../System_Files/support_files/parser.h"
+
+int main(int argc, char* argv[])
 {
-    std::cout << " " << std::endl;
+    parser::Scene scene;
+
+    std::cout << argv[1] << std::endl; 
+    scene.loadFromXml(argv[1]);
     return 1; 
 }
