@@ -1,5 +1,6 @@
 #pragma once
 #include "../Dependencies/glm_headers/glm.hpp"
+#include "../System_Files/support_files/parser.h"
 struct Object
 {
     glm::vec3 color = glm::vec3(1.0f , 1.0f , 0.0f ); 
@@ -34,8 +35,9 @@ struct Sphere : Object
 class Ray
 {
     public:
-    Ray(glm::vec3 origin , glm::vec3 point2 ); //direction must have bee nnormalized 
+    Ray(glm::vec3 origin , glm::vec3 point2 ); //direction comes out normalized
     //Ray( glm::vec3 origin , glm::vec3  p2  );
     glm::vec3 origin;
     glm::vec3 direction;
 };
+

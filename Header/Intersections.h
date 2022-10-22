@@ -1,12 +1,4 @@
-#include "../Header/Ray.h"
-#include "../System_Files/support_files/parser.h"
-#include "../Header/Prototypes.h"
-Ray::Ray(glm::vec3 origin , glm::vec3 point2 )
-{
-    this->origin = origin;
-    this->direction = glm::normalize(origin - point2);
-}
-
+#include "Renderer.h"
 // intersections and stuff 
 static bool ray_triangle_intersection( const Ray &ray , const parser::Scene& scene ,  glm::vec3 intersection_point  )
 {
@@ -59,26 +51,6 @@ static bool ray_sphere_intersection(const Ray& ray , const Sphere& sphere , glm:
     }
     return true; 
 
-}
-
-static float color_pixel(parser::Scene& scene , Ray & ray )
-{
-    // 1 - check intersections with messhes if no intersection return 0
-    bool is_intersected = false;
-    for (size_t i = 0; i < scene.meshes.size(); i++) // travere each object
-    {
-        glm::vec3 intersection_point(0.0f , 0.0f ,0.0f);  
-        bool is_intersected_with_this_object = false; 
-        is_intersected_with_this_object = calculate_intersection(scene , scene.meshes[i] , intersection_point);
-    }
-    // 2 - check intersections with spheres
-    for (size_t i = 0; i < scene.spheres.size(); i++) // travere each object
-    {
-        glm::vec3 intersection_point(0.0f , 0.0f ,0.0f);  
-        bool is_intersected_with_this_sphere = false; 
-        is_intersected_with_this_sphere = calculate_intersection(scene , scene.spheres[i] , intersection_point);
-    }    
-    return 1.0f;
 }
 
 

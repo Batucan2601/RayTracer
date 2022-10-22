@@ -6,15 +6,24 @@
 #include <fstream>
 #include <vector>
 #include "../Header/Ray.h"
-#include "../Header/Scene.h"
 #include "../System_Files/support_files/ppm.h"
 #include "../System_Files/support_files/parser.h"
+parser::Scene scene;
+parser::Camera current_camera;
+#include "../Header/Renderer.h"
+
+
+
+
 
 int main(int argc, char* argv[])
 {
-    parser::Scene scene;
-
+    
     std::cout << argv[1] << std::endl; 
-    scene.loadFromXml(argv[1]);
+    scene.loadFromXml(argv[1]); // load the scene
+    generate_image(scene);
+    
+    
+    
     return 1; 
 }
