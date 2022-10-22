@@ -1,5 +1,10 @@
 #include "Renderer.h"
 // intersections and stuff 
+static Plane generate_plane(const glm::vec3 & p1 , const glm::vec3 & normal )
+{
+    //calculate normal
+    
+}
 static bool ray_triangle_intersection( const Ray &ray , const parser::Scene& scene ,  glm::vec3 intersection_point  )
 {
      
@@ -7,6 +12,13 @@ static bool ray_triangle_intersection( const Ray &ray , const parser::Scene& sce
 static bool ray_plane_intersection(const Ray& ray , const Plane& plane , glm::vec3 & hitpoint  )
 {
 
+}
+static bool ray_triangle_intersection(const Ray& ray , const glm::vec3 & p1 ,const  glm::vec3 & p2 , const glm::vec3 &  p3 , const glm::vec3  & normal , glm::vec3 & hitpoint )
+{
+  // I will do the inefficent method since I am used to it
+  
+  // 1 - generate plane from 3 points
+  Plane p = generate_plane(p1 , normal );
 }
 static bool ray_sphere_intersection(const Ray& ray , const Sphere& sphere , glm::vec3 & hitpoint  )
 {
@@ -54,8 +66,22 @@ static bool ray_sphere_intersection(const Ray& ray , const Sphere& sphere , glm:
 }
 
 
+//mesh intersection 
 static bool calculate_intersection(parser::Scene& scene ,parser::Mesh& object ,  glm::vec3 & intersection_point )
 {
+    
+    for (size_t i = 0; i < object.faces.size(); i++)
+    {
+        //get points
+        glm::vec3 p1 = glm::vec3( scene.vertex_data[ (object.faces[i].v0_id-1) / 3  ].x , scene.vertex_data[ (object.faces[i].v0_id-1) / 3  ].y , scene.vertex_data[ (object.faces[i].v0_id-1) / 3  ].z); 
+        glm::vec3 p2 = glm::vec3( scene.vertex_data[ (object.faces[i].v1_id-1) / 3  ].x , scene.vertex_data[ (object.faces[i].v1_id-1) / 3  ].y , scene.vertex_data[ (object.faces[i].v1_id-1) / 3  ].z);
+        glm::vec3 p3 = glm::vec3( scene.vertex_data[ (object.faces[i].v2_id-1) / 3  ].x , scene.vertex_data[ (object.faces[i].v2_id-1) / 3  ].y , scene.vertex_data[ (object.faces[i].v2_id-1) / 3  ].z);
+        //calculate normal
+        glm::vec3 normal = glm::normalize(glm::cross((p2-p1) , (p3-p1)) );
+        ray_triangle_intersection();
+
+    }
+    
     return true; 
 }
 static bool calculate_intersection(parser::Scene& scene ,parser::Sphere& object ,  glm::vec3 & intersection_point )

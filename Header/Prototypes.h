@@ -8,3 +8,4 @@ static bool ray_sphere_intersection(const Ray& ray , const Sphere& sphere , glm:
 static float color_pixel(parser::Scene& scene , Ray & ray );
 static bool calculate_intersection(parser::Scene& scene ,parser::Mesh& object ,  glm::vec3 & intersection_point );
 static bool calculate_intersection(parser::Scene& scene ,parser::Sphere& object ,  glm::vec3 & intersection_point );
+static bool ray_triangle_intersection(const Ray& ray , const glm::vec3 & p1 ,const  glm::vec3 & p2 , const glm::vec3 &  p3 , glm::vec3 & hitpoint );
