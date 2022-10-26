@@ -1,8 +1,9 @@
+#pragma once 
 #include "parser.h"
 #include "tinyxml2.h"
 #include <sstream>
 #include <stdexcept>
-
+#include <iostream>
 void parser::Scene::loadFromXml(const std::string &filepath)
 {
     tinyxml2::XMLDocument file;
@@ -120,26 +121,35 @@ void parser::Scene::loadFromXml(const std::string &filepath)
 
         child = element->FirstChildElement("AmbientReflectance");
         if( child != NULL)
-        stream << child->GetText() << std::endl;
+        {
+            stream << child->GetText() << std::endl;
+            stream >> material.ambient.x >> material.ambient.y >> material.ambient.z;
+        }
         child = element->FirstChildElement("DiffuseReflectance");
         if( child != NULL)
-        stream << child->GetText() << std::endl;
+        {
+            stream << child->GetText() << std::endl;
+            stream >> material.diffuse.x >> material.diffuse.y >> material.diffuse.z;
+        }
         child = element->FirstChildElement("SpecularReflectance");
         if( child != NULL)
+        {
         stream << child->GetText() << std::endl;
+        stream >> material.specular.x >> material.specular.y >> material.specular.z;
+
+        }
         child = element->FirstChildElement("MirrorReflectance");
         if( child != NULL)
-        stream << child->GetText() << std::endl;
+        {
+            stream << child->GetText() << std::endl;
+            stream >> material.mirror.x >> material.mirror.y >> material.mirror.z;
+        }
         child = element->FirstChildElement("PhongExponent");
         if( child != NULL)
-        stream << child->GetText() << std::endl;
-
-        stream >> material.ambient.x >> material.ambient.y >> material.ambient.z;
-        stream >> material.diffuse.x >> material.diffuse.y >> material.diffuse.z;
-        stream >> material.specular.x >> material.specular.y >> material.specular.z;
-        stream >> material.mirror.x >> material.mirror.y >> material.mirror.z;
-        stream >> material.phong_exponent;
-
+        {
+            stream << child->GetText() << std::endl;
+            stream >> material.phong_exponent;
+        }
         materials.push_back(material);
         element = element->NextSiblingElement("Material");
     }
@@ -150,9 +160,11 @@ void parser::Scene::loadFromXml(const std::string &filepath)
     Vec3f vertex;
     while (!(stream >> vertex.x).eof())
     {
+         
         stream >> vertex.y >> vertex.z;
         vertex_data.push_back(vertex);
     }
+
     stream.clear();
 
     //Get Meshes
@@ -198,7 +210,6 @@ void parser::Scene::loadFromXml(const std::string &filepath)
         triangles.push_back(triangle);
         element = element->NextSiblingElement("Triangle");
     }
-
     //Get Spheres
     element = root->FirstChildElement("Objects");
     element = element->FirstChildElement("Sphere");

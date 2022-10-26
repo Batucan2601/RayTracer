@@ -1,11 +1,12 @@
 #pragma once
-//#define DEBUG
 #include "../Header/Prototypes.h"
 #include "../Dependencies/glm_headers/glm.hpp"
 #include "../Header/Ray.h"
+#include "../Header/Helper.h"
 // the basic ray tracing block 
 static void generate_image(parser::Scene & scene)
 {
+    int i = 0; 
     for (size_t camera_no = 0; camera_no < scene.cameras.size() ; camera_no++)
     {
         current_camera = scene.cameras[camera_no];  // get the current_camera
@@ -21,14 +22,23 @@ static void generate_image(parser::Scene & scene)
         calculate_image_plane(current_camera , starting_point , interval_row , interval_col );
         //we now have a startin point
         glm::vec3 starting_point_glm = glm::vec3( starting_point.x , starting_point.y , starting_point.z );  
+        std::cout << "starting point " <<  starting_point_glm.x << " " << starting_point_glm.y  << starting_point_glm.z << std::endl; 
         for (size_t y = 0; y < height; y++)
         {
             for (size_t x = 0; x < width; x++)
             {
+                //std::cout << " pixel no " << i /3 << std::endl; 
                 // initialize the ray
                 glm::vec3 current_pixel_world_space = starting_point_glm + glm::vec3( interval_row.x ,  interval_row.y ,  interval_row.z) * (float) x + (float ) y * glm::vec3( interval_col.x ,  interval_col.y ,  interval_col.z) ; 
                 Ray ray(glm::vec3( current_camera.position.x , current_camera.position.y , current_camera.position.z  )  , current_pixel_world_space );
-                float color = color_pixel(scene  , ray);
+                glm::vec3  color = color_pixel(scene  , ray);
+                
+                // color cast 
+                image[i++] = (unsigned char) (color.x);
+                image[i++] = (unsigned char) (color.y);
+                image[i++] = (unsigned char) (color.z);
+                //std::cout << (unsigned int)color.x << " " <<  (unsigned int)color.y << " " <<  (unsigned int)color.z << std::endl; 
+                //std::cout << "image " << (unsigned int )image[i-3 ] << " " << (unsigned int )image[i -2 ]  << " " << (unsigned int )image[i-1] << std::endl; 
             }
         }
         //save the written image
@@ -52,10 +62,12 @@ static void calculate_image_plane(const parser::Camera &current_camera , parser:
     //now get to the (0 ,0 ) 
     
     // but we cannot use right we need left
-    glm::vec3 left_vec = glm::vec3( -1 * right_vec.x , -1 * right_vec.y , -1 * right_vec.z  );
+    glm::vec3 left_vec = glm::normalize(glm::cross(cam_up , cam_gaze));
     #ifdef DEBUG 
     std::cout << " left vec" << left_vec.x << " " << left_vec.y << " " << left_vec.z << std::endl;
     std::cout << " right vec" << right_vec.x << " " << right_vec.y << " " << right_vec.z << std::endl;
+    std::cout << " intersection " << intersection.x << " " << intersection.y << " " << intersection.z << std::endl; 
+    std::cout << " cam_up " << cam_up.x << " " << cam_up.y << " " << cam_up.z << std::endl; 
     #endif
     // check how much we need to go left
     float left = current_camera.near_plane.x;
@@ -63,7 +75,9 @@ static void calculate_image_plane(const parser::Camera &current_camera , parser:
     float bottom = current_camera.near_plane.z;
     float top = current_camera.near_plane.w;
     
-    glm::vec3 top_left_corner = intersection + left_vec * left + cam_up * top;
+    glm::vec3 top_left_corner = intersection + right_vec * left + cam_up * top;
+    
+
     starting_point.x = top_left_corner.x;
     starting_point.y = top_left_corner.y;
     starting_point.z = top_left_corner.z;
@@ -115,24 +129,116 @@ static void calculate_image_plane(const parser::Camera &current_camera , parser:
 
 }
 
-static float color_pixel(parser::Scene& scene , Ray & ray )
+static glm::vec3 color_pixel(parser::Scene& scene , Ray & ray )
 {
-    // 1 - check intersections with messhes if no intersection return 0
-    bool is_intersected = false;
-    for (size_t i = 0; i < scene.meshes.size(); i++) // travere each object
+
+    
+    glm::vec3 color(0.0f , 0.0f , 0.0f );
+    
+    glm::vec3 hit_point; 
+    glm::vec3 normal;
+    parser::Material material; 
+    
+    //find the hitpoint 
+    bool is_shadow_rays_active = false;
+    glm::vec3 no_meaning_hit_point; 
+    int object_id = -1; 
+    bool  is_object_hit = ray_object_intersection( ray , scene ,  hit_point , normal  , material   , object_id ,  is_shadow_rays_active);
+    
+    if( !is_object_hit)
     {
-        glm::vec3 intersection_point(0.0f , 0.0f ,0.0f);  
-        bool is_intersected_with_this_object = false; 
-        is_intersected_with_this_object = calculate_intersection(scene , scene.meshes[i] , intersection_point);
+        return glm::vec3(scene.background_color.x, scene.background_color.y , scene.background_color.z );
     }
-    // 2 - check intersections with spheres
-    for (size_t i = 0; i < scene.spheres.size(); i++) // travere each object
+    //normalize normal 
+    //now we got the  nearest hitpoint and normal of that hitpoint. we can calculate color and cast shadow rays
+    
+    //we can add ambient shading
+    color = glm::vec3(scene.ambient_light.x , scene.ambient_light.y , scene.ambient_light.z);
+    //  for each light
+    is_shadow_rays_active = true; 
+
+    float least_cosine  = 9999; 
+    for (size_t i = 0; i < scene.point_lights.size(); i++) 
     {
-        glm::vec3 intersection_point(0.0f , 0.0f ,0.0f);  
-        bool is_intersected_with_this_sphere = false; 
-        is_intersected_with_this_sphere = calculate_intersection(scene , scene.spheres[i] , intersection_point);
-    }    
-    return 1.0f;
+        glm::vec3 light_pos = glm::vec3(scene.point_lights[i].position.x , scene.point_lights[i].position.y ,scene.point_lights[i].position.z);
+        
+        //add shadow ray epsilon in direction of normal 
+        hit_point += normal * scene.shadow_ray_epsilon;
+        // cast  shadow ray
+        Ray shadow_ray(hit_point , light_pos );
+        
+        glm::vec3 hit_point_temp; 
+        glm::vec3 normal_temp;
+        parser::Material material_temp;  
+        
+        glm::vec3 diffuse_1 = glm::vec3( material.diffuse.x , material.diffuse.y, material.diffuse.z);
+        bool  is_object_hit = ray_object_intersection( shadow_ray , scene ,  hit_point_temp , normal_temp , material_temp , object_id , is_shadow_rays_active);
+        
+        if( is_object_hit ) // it is in shadow no contribution from light
+        {
+
+            continue; 
+        }
+        // else you directly went to a light
+        if(material.is_mirror ) // do some weird stuff 
+        {
+
+        }
+        
+        // diffuse 
+        glm::vec3 diffuse = glm::vec3( material.diffuse.x , material.diffuse.y, material.diffuse.z);
+        float cosine_alpha = glm::dot(shadow_ray.direction  ,  normal ) / (glm::length(shadow_ray.direction) * glm::length(normal)  ) ; //normal vectors
+        //clamp cosine alpha
+        cosine_alpha = glm::max(0.0f , cosine_alpha);
+        diffuse = diffuse * cosine_alpha; 
+        diffuse = glm::vec3( diffuse.x * scene.point_lights[i].intensity.x , diffuse.y *  scene.point_lights[i].intensity.y ,diffuse.z *   scene.point_lights[i].intensity.z) / (glm::distance(light_pos , hit_point )*glm::distance(light_pos, hit_point)  );
+        //clamp diffuse
+        diffuse.x = glm::min(255.0f , diffuse.x );
+        diffuse.y = glm::min(255.0f , diffuse.y );
+        diffuse.z = glm::min(255.0f , diffuse.z );
+
+
+        // specular 
+        glm::vec3 specular = glm::vec3( material.specular.x , material.specular.y, material.specular.z);
+        float phong_exponent = material.phong_exponent; 
+
+        glm::vec3 h =  ( shadow_ray.direction + -1.0f*(ray.direction) )  / glm::length(shadow_ray.direction + -1.0f*(ray.direction));  // this might be flawed 
+        std::cout << " h " << glm::length(h) << std::endl; 
+        print_vec3(h);
+        //std::cout << " normal " << std::endl; 
+       // print_vec3(normal);
+        float cosine_h_n = glm::dot(h , normal) /  ( glm::length(h) * glm::length(normal) ); // they re both normalised but just in case
+        //clamp cosine
+        cosine_h_n = glm::max(0.0f , cosine_h_n );
+        if( least_cosine > cosine_h_n )
+        {
+            least_cosine = cosine_h_n;
+        } 
+        specular =  glm::pow( cosine_h_n , phong_exponent   ) *  glm::vec3( specular.x * scene.point_lights[i].intensity.x , specular.y * scene.point_lights[i].intensity.y  , specular.z * scene.point_lights[i].intensity.z );  
+        //clamp diffuse
+        specular.x = glm::min(255.0f , specular.x );
+        specular.y = glm::min(255.0f , specular.y );
+        specular.z = glm::min(255.0f , specular.z );
+        
+        color += diffuse  + specular  ;   
+
+
+    }
+    //std::cout << " leats cosine  " << least_cosine << std::endl; 
+    //clamp color
+    color.x = glm::min( color.x , 255.0f );
+    color.y = glm::min( color.y , 255.0f );
+    color.z = glm::min( color.z , 255.0f );
+
+    //clamp to nearest integer
+    color.x = (float) ( (int ) color.x );
+    color.y = (float) ( (int ) color.y );
+    color.z = (float) ( (int ) color.z );
+
+    return color; 
+
+    
+
 }
 
 

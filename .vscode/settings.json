@@ -50,6 +50,8 @@
         "random": "cpp",
         "string": "cpp",
         "string_view": "cpp",
-        "bit": "cpp"
+        "bit": "cpp",
+        "bitset": "cpp",
+        "chrono": "cpp"
     }
 }
