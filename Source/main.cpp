@@ -23,24 +23,13 @@ int main(int argc, char* argv[])
     scene.loadFromXml(argv[1]); // load the scene
     std::cout << "loaded succesful y " << std::endl;
     generate_image(scene);
-    parser::Mesh o = scene.meshes[0];
     //Ray ray( glm::vec3( scene.cameras[0].position.x  , scene.cameras[0].position.y ,  scene.cameras[0].position.z)  , glm::vec3( scene.cameras[0].gaze.x , scene.cameras[0].gaze.y , scene.cameras[0].gaze.z ) );
-    Ray ray( glm::vec3( -0.875 , 1.0f , 0.0f )  , glm::vec3( 0.0f, 0.0f ,-2.0f  ) );
+    Ray r_test( glm::vec3( 0 , 0 , 0 ) , glm::vec3( 0 , 0 , -1 ) );
+    glm::vec3 norm; 
+    glm::vec3 hit_point ; 
+
+    bool sphere = ray_sphere_intersection(r_test , scene.spheres[0] , glm::vec3(0 ,  0 ,  -2) , norm , hit_point   );
     
-    glm::vec3 center = glm::vec3(0.0f, 0.0f,-2.0f);
-    print_vec3(center);
-    glm::vec3 normal; 
-    glm::vec3 hitpoint; 
-    if( ray_sphere_intersection(ray , scene.spheres[0] ,center, normal , hitpoint  ) ) 
-    {
-    print_vec3(normal);
-    print_vec3(hitpoint);
-
-    }
-
-    glm::vec3 p1( 5, 50.5, -2 );
-    glm::vec3 p2( -10.5, 0.0f, -2 );
-    glm::vec3 p3(  5, -50.5,  -2 );
 
 
     //glm::vec3 p1(0.0f , 0.0f , 0.0f );

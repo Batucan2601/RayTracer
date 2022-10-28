@@ -7,6 +7,7 @@
 static void generate_image(parser::Scene & scene)
 {
     int i = 0; 
+    std::cout <<  "camera size  " << scene.cameras.size()  << std::endl; 
     for (size_t camera_no = 0; camera_no < scene.cameras.size() ; camera_no++)
     {
         current_camera = scene.cameras[camera_no];  // get the current_camera
@@ -18,7 +19,6 @@ static void generate_image(parser::Scene & scene)
         parser::Vec3f starting_point; // up left  (0 , 0 )
         parser::Vec3f interval_row; // real space interval in two consec pixels in same row 
         parser::Vec3f interval_col;// real space interval in two consec pixels in same  col
-
         calculate_image_plane(current_camera , starting_point , interval_row , interval_col );
         //we now have a startin point
         glm::vec3 starting_point_glm = glm::vec3( starting_point.x , starting_point.y , starting_point.z );  
@@ -27,7 +27,7 @@ static void generate_image(parser::Scene & scene)
         {
             for (size_t x = 0; x < width; x++)
             {
-                //std::cout << " pixel no " << i /3 << std::endl; 
+                //initilaize recursion depth
                 // initialize the ray
                 glm::vec3 current_pixel_world_space = starting_point_glm + glm::vec3( interval_row.x ,  interval_row.y ,  interval_row.z) * (float) x + (float ) y * glm::vec3( interval_col.x ,  interval_col.y ,  interval_col.z) ; 
                 Ray ray(glm::vec3( current_camera.position.x , current_camera.position.y , current_camera.position.z  )  , current_pixel_world_space );
@@ -37,10 +37,9 @@ static void generate_image(parser::Scene & scene)
                 image[i++] = (unsigned char) (color.x);
                 image[i++] = (unsigned char) (color.y);
                 image[i++] = (unsigned char) (color.z);
-                //std::cout << (unsigned int)color.x << " " <<  (unsigned int)color.y << " " <<  (unsigned int)color.z << std::endl; 
-                //std::cout << "image " << (unsigned int )image[i-3 ] << " " << (unsigned int )image[i -2 ]  << " " << (unsigned int )image[i-1] << std::endl; 
             }
         }
+
         //save the written image
         write_ppm( current_camera.image_name.c_str(), image, width, height);
         //in the end just reallocate the image
@@ -50,6 +49,7 @@ static void generate_image(parser::Scene & scene)
 
 static void calculate_image_plane(const parser::Camera &current_camera , parser::Vec3f & starting_point,  parser::Vec3f & interval_row, parser::Vec3f & interval_col)
 {
+    std::cout << " gello " << std::endl;
     //calculate right vector
     glm::vec3 cam_up = glm::normalize(glm::vec3(current_camera.up.x,current_camera.up.y,current_camera.up.z));
     glm::vec3 cam_gaze = glm::normalize(glm::vec3(current_camera.gaze.x,current_camera.gaze.y,current_camera.gaze.z));
@@ -62,12 +62,10 @@ static void calculate_image_plane(const parser::Camera &current_camera , parser:
     //now get to the (0 ,0 ) 
     
     // but we cannot use right we need left
-    glm::vec3 left_vec = glm::normalize(glm::cross(cam_up , cam_gaze));
+    glm::vec3 left_vec = glm::vec3( -1 * right_vec.x , -1 * right_vec.y , -1 * right_vec.z  );
     #ifdef DEBUG 
     std::cout << " left vec" << left_vec.x << " " << left_vec.y << " " << left_vec.z << std::endl;
     std::cout << " right vec" << right_vec.x << " " << right_vec.y << " " << right_vec.z << std::endl;
-    std::cout << " intersection " << intersection.x << " " << intersection.y << " " << intersection.z << std::endl; 
-    std::cout << " cam_up " << cam_up.x << " " << cam_up.y << " " << cam_up.z << std::endl; 
     #endif
     // check how much we need to go left
     float left = current_camera.near_plane.x;
@@ -75,9 +73,7 @@ static void calculate_image_plane(const parser::Camera &current_camera , parser:
     float bottom = current_camera.near_plane.z;
     float top = current_camera.near_plane.w;
     
-    glm::vec3 top_left_corner = intersection + right_vec * left + cam_up * top;
-    
-
+    glm::vec3 top_left_corner = intersection + left_vec * right + cam_up * top;
     starting_point.x = top_left_corner.x;
     starting_point.y = top_left_corner.y;
     starting_point.z = top_left_corner.z;
@@ -149,6 +145,7 @@ static glm::vec3 color_pixel(parser::Scene& scene , Ray & ray )
     {
         return glm::vec3(scene.background_color.x, scene.background_color.y , scene.background_color.z );
     }
+
     //normalize normal 
     //now we got the  nearest hitpoint and normal of that hitpoint. we can calculate color and cast shadow rays
     
@@ -156,10 +153,10 @@ static glm::vec3 color_pixel(parser::Scene& scene , Ray & ray )
     color = glm::vec3(scene.ambient_light.x , scene.ambient_light.y , scene.ambient_light.z);
     //  for each light
     is_shadow_rays_active = true; 
-
-    float least_cosine  = 9999; 
+    std::cout << " point lights size " << scene.point_lights.size() << std::endl; 
     for (size_t i = 0; i < scene.point_lights.size(); i++) 
     {
+        //each light pos 
         glm::vec3 light_pos = glm::vec3(scene.point_lights[i].position.x , scene.point_lights[i].position.y ,scene.point_lights[i].position.z);
         
         //add shadow ray epsilon in direction of normal 
@@ -171,18 +168,25 @@ static glm::vec3 color_pixel(parser::Scene& scene , Ray & ray )
         glm::vec3 normal_temp;
         parser::Material material_temp;  
         
-        glm::vec3 diffuse_1 = glm::vec3( material.diffuse.x , material.diffuse.y, material.diffuse.z);
         bool  is_object_hit = ray_object_intersection( shadow_ray , scene ,  hit_point_temp , normal_temp , material_temp , object_id , is_shadow_rays_active);
         
         if( is_object_hit ) // it is in shadow no contribution from light
         {
-
-            continue; 
+            if( glm::distance(hit_point_temp , hit_point) < glm::distance(hit_point, light_pos) ) //before light source 
+            {
+                continue; 
+            }
         }
         // else you directly went to a light
-        if(material.is_mirror ) // do some weird stuff 
+        if(material.is_mirror ) // do recursion
         {
 
+            //glm::vec3 view_pos = glm::vec3( ray.direction.x  * -1 , ray.direction.y  * -1 , ray.direction.z  * -1  ); 
+            //float cosine_omega  = glm::dot( view_pos , normal ) / ( glm::length( normal ) * glm::length(view_pos));
+            //glm::vec3 vr = - view_pos + 2* normal * cosine_omega;  
+            //Ray recursion_ray( hit_point , vr );
+
+            
         }
         
         // diffuse 
@@ -197,24 +201,17 @@ static glm::vec3 color_pixel(parser::Scene& scene , Ray & ray )
         diffuse.y = glm::min(255.0f , diffuse.y );
         diffuse.z = glm::min(255.0f , diffuse.z );
 
-
         // specular 
         glm::vec3 specular = glm::vec3( material.specular.x , material.specular.y, material.specular.z);
         float phong_exponent = material.phong_exponent; 
 
-        glm::vec3 h =  ( shadow_ray.direction + -1.0f*(ray.direction) )  / glm::length(shadow_ray.direction + -1.0f*(ray.direction));  // this might be flawed 
-        std::cout << " h " << glm::length(h) << std::endl; 
-        print_vec3(h);
-        //std::cout << " normal " << std::endl; 
-       // print_vec3(normal);
+        glm::vec3 viewpos = glm::normalize(ray.origin - hit_point); 
+        glm::vec3 h =  glm::normalize( shadow_ray.direction + viewpos ); // this might be flawed 
         float cosine_h_n = glm::dot(h , normal) /  ( glm::length(h) * glm::length(normal) ); // they re both normalised but just in case
         //clamp cosine
         cosine_h_n = glm::max(0.0f , cosine_h_n );
-        if( least_cosine > cosine_h_n )
-        {
-            least_cosine = cosine_h_n;
-        } 
-        specular =  glm::pow( cosine_h_n , phong_exponent   ) *  glm::vec3( specular.x * scene.point_lights[i].intensity.x , specular.y * scene.point_lights[i].intensity.y  , specular.z * scene.point_lights[i].intensity.z );  
+
+        specular =  glm::pow( cosine_h_n , phong_exponent   ) *  glm::vec3( specular.x * scene.point_lights[i].intensity.x , specular.y * scene.point_lights[i].intensity.y  , specular.z * scene.point_lights[i].intensity.z ) / (glm::distance(light_pos , hit_point )*glm::distance(light_pos, hit_point)  );  
         //clamp diffuse
         specular.x = glm::min(255.0f , specular.x );
         specular.y = glm::min(255.0f , specular.y );
@@ -224,7 +221,6 @@ static glm::vec3 color_pixel(parser::Scene& scene , Ray & ray )
 
 
     }
-    //std::cout << " leats cosine  " << least_cosine << std::endl; 
     //clamp color
     color.x = glm::min( color.x , 255.0f );
     color.y = glm::min( color.y , 255.0f );

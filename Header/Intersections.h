@@ -41,7 +41,10 @@ static bool ray_plane_intersection(const Ray& ray , const glm::vec3 & p1 ,  cons
     
 
     #endif
-
+    if( t < 0 ) // line intersection not a ray 
+    {
+        return false; 
+    }
 
     return true; 
 
@@ -82,17 +85,17 @@ static bool is_point_in_triangle(const glm::vec3 & p1 ,const glm::vec3 & p2 , co
     
     glm::vec3 C1 = glm::cross( p2 - p1 , hitpoint - p1  );
     
-    if( glm::dot( C1 , normal) < 0 )
+    if( glm::dot( C1 , normal) < -1e-3 )
     {
         return false;
     }
     glm::vec3 C2 = glm::cross( p3 - p2 , hitpoint - p2  );
-    if( glm::dot( C2 , normal) < 0 )
+    if( glm::dot( C2 , normal) < -1e-3 )
     {
         return false;
     }
     glm::vec3 C3 = glm::cross( p1 - p3 , hitpoint - p3  );
-    if( glm::dot( C3 , normal) < 0 )
+    if( glm::dot( C3 , normal) < -1e-3 )
     {
         return false;
     }
@@ -136,16 +139,21 @@ static bool ray_sphere_intersection(const Ray& ray , const parser::Sphere& spher
         std::cout << " starrt " << std::endl; 
         std::cout << "center " << center.x << " " << center.y << " " << center.z << std::endl;
         std::cout << "a " <<  a <<   " b "  << b  << " c " << c <<  std::endl; 
+        return false;
     }
     #endif 
     if( discriminant < 0 )
     {
         return false; 
     }
+    
     if( discriminant == 0 )
     {
-        float root =  ( -b-glm::sqrt(discriminant) )  / (2*a);
-
+        float root =  ( -b )  / (2*a);
+        if( root < 0 )
+        {
+            return false; 
+        }
         hitpoint = O + root * k;
 
         //calculate normal 
@@ -155,23 +163,42 @@ static bool ray_sphere_intersection(const Ray& ray , const parser::Sphere& spher
     // else there are two roots
 
     float root_1 =  (-b-glm::sqrt(discriminant) )  / (2*a);
-    float root_2 = (-b+glm::sqrt(discriminant)) / (2*a);
-
+    float root_2 = (-b+glm::sqrt(discriminant) ) / (2*a);
+    if( root_1 < 0 && root_2 < 0  )
+    {
+        return false; 
+    }
     //two hitpoints
     glm::vec3 h1 = O + root_1 * k;
     glm::vec3 h2 = O + root_2 * k;
-    //get the smaller length root * k;
-    float d1 = glm::distance( O ,  h1 );
-    float d2 = glm::distance( O ,  h2 );
-
-    if( d1 > d2 )
+    if( root_1 > 0 && root_2 > 0 )
     {
-        hitpoint = h2; 
+        
+        //get the smaller length root * k;
+        float d1 = glm::distance( O ,  h1 );
+        float d2 = glm::distance( O ,  h2 );
+        if( d1 > d2 )
+        {
+            hitpoint = h2; 
+        }
+        else
+        {
+            hitpoint = h1;
+        }
     }
     else
     {
-        hitpoint = h1;
+        if( root_1 > 0 )
+        {
+            hitpoint = h1; 
+        }
+        else if( root_2 > 0 )
+        {
+            hitpoint = h2; 
+        }
     }
+    
+    
     //calculate normal
     normal = glm::normalize( hitpoint - center );
     return true; 
@@ -351,6 +378,7 @@ static bool ray_object_intersection( const Ray & ray , parser::Scene & scene , g
     }
  
     //now we found the hitpoints get the smallest of them and return black if nothing found
+    
     if( hit_points.size() == 0 )
     {
         return false; 
@@ -373,7 +401,7 @@ static bool ray_object_intersection( const Ray & ray , parser::Scene & scene , g
     hitpoint = hit_points[smallest_index];
     normal = normals[smallest_index];
     material = materials[smallest_index];
-
+    
     if( !is_shadow_rays_active) // if not shadow rays active  set prev_object_no_to object
     {
         prev_object_id = object_id_list[smallest_index];

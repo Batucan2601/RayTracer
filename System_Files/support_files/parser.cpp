@@ -61,6 +61,7 @@ void parser::Scene::loadFromXml(const std::string &filepath)
     element = root->FirstChildElement("Cameras");
     element = element->FirstChildElement("Camera");
     Camera camera;
+    std::cout << "1 " << std::endl;  
     while (element)
     {
         auto child = element->FirstChildElement("Position");
@@ -97,6 +98,9 @@ void parser::Scene::loadFromXml(const std::string &filepath)
     stream >> ambient_light.x >> ambient_light.y >> ambient_light.z;
     element = element->FirstChildElement("PointLight");
     PointLight point_light;
+
+    std::cout << "2 " << std::endl;  
+
     while (element)
     {
         child = element->FirstChildElement("Position");
@@ -115,6 +119,10 @@ void parser::Scene::loadFromXml(const std::string &filepath)
     element = root->FirstChildElement("Materials");
     element = element->FirstChildElement("Material");
     Material material;
+
+
+    std::cout << "3 " << std::endl;  
+
     while (element)
     {
         material.is_mirror = (element->Attribute("type", "mirror") != NULL);
@@ -153,6 +161,7 @@ void parser::Scene::loadFromXml(const std::string &filepath)
         materials.push_back(material);
         element = element->NextSiblingElement("Material");
     }
+    std::cout << "4 " << std::endl;  
 
     //Get VertexData
     element = root->FirstChildElement("VertexData");
@@ -163,7 +172,11 @@ void parser::Scene::loadFromXml(const std::string &filepath)
          
         stream >> vertex.y >> vertex.z;
         vertex_data.push_back(vertex);
+
+        std::cout << vertex.x << " " << vertex.y << " " << vertex.z  << std::endl;  
+
     }
+    std::cout << "5 " << std::endl;  
 
     stream.clear();
 
@@ -191,6 +204,8 @@ void parser::Scene::loadFromXml(const std::string &filepath)
         mesh.faces.clear();
         element = element->NextSiblingElement("Mesh");
     }
+    std::cout << "6 " << std::endl;  
+
     stream.clear();
 
     //Get Triangles
