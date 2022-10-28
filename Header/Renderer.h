@@ -4,9 +4,11 @@
 #include "../Header/Ray.h"
 #include "../Header/Helper.h"
 // the basic ray tracing block 
+int max_recursion_depth; 
 static void generate_image(parser::Scene & scene)
 {
     int i = 0; 
+    
     std::cout <<  "camera size  " << scene.cameras.size()  << std::endl; 
     for (size_t camera_no = 0; camera_no < scene.cameras.size() ; camera_no++)
     {
@@ -27,7 +29,9 @@ static void generate_image(parser::Scene & scene)
         {
             for (size_t x = 0; x < width; x++)
             {
+                std::cout << " x " << x <<  " y " << y << std::endl;  
                 //initilaize recursion depth
+                max_recursion_depth = scene.max_recursion_depth;
                 // initialize the ray
                 glm::vec3 current_pixel_world_space = starting_point_glm + glm::vec3( interval_row.x ,  interval_row.y ,  interval_row.z) * (float) x + (float ) y * glm::vec3( interval_col.x ,  interval_col.y ,  interval_col.z) ; 
                 Ray ray(glm::vec3( current_camera.position.x , current_camera.position.y , current_camera.position.z  )  , current_pixel_world_space );
@@ -49,13 +53,11 @@ static void generate_image(parser::Scene & scene)
 
 static void calculate_image_plane(const parser::Camera &current_camera , parser::Vec3f & starting_point,  parser::Vec3f & interval_row, parser::Vec3f & interval_col)
 {
-    std::cout << " gello " << std::endl;
     //calculate right vector
     glm::vec3 cam_up = glm::normalize(glm::vec3(current_camera.up.x,current_camera.up.y,current_camera.up.z));
     glm::vec3 cam_gaze = glm::normalize(glm::vec3(current_camera.gaze.x,current_camera.gaze.y,current_camera.gaze.z));
 
     glm::vec3 right_vec = glm::normalize(glm::cross(cam_gaze , cam_up ));
-    std::cout << right_vec.x << " " << right_vec.y <<  "  " << right_vec.z << std::endl; 
     //find the intersection with the image
     glm::vec3 intersection =  glm::vec3(current_camera.position.x , current_camera.position.y , current_camera.position.z   )  +  current_camera.near_distance *  cam_gaze;
 
@@ -153,7 +155,6 @@ static glm::vec3 color_pixel(parser::Scene& scene , Ray & ray )
     color = glm::vec3(scene.ambient_light.x , scene.ambient_light.y , scene.ambient_light.z);
     //  for each light
     is_shadow_rays_active = true; 
-    std::cout << " point lights size " << scene.point_lights.size() << std::endl; 
     for (size_t i = 0; i < scene.point_lights.size(); i++) 
     {
         //each light pos 
@@ -180,12 +181,16 @@ static glm::vec3 color_pixel(parser::Scene& scene , Ray & ray )
         // else you directly went to a light
         if(material.is_mirror ) // do recursion
         {
-
-            //glm::vec3 view_pos = glm::vec3( ray.direction.x  * -1 , ray.direction.y  * -1 , ray.direction.z  * -1  ); 
-            //float cosine_omega  = glm::dot( view_pos , normal ) / ( glm::length( normal ) * glm::length(view_pos));
-            //glm::vec3 vr = - view_pos + 2* normal * cosine_omega;  
-            //Ray recursion_ray( hit_point , vr );
-
+            if( max_recursion_depth > 0 )
+            {
+                max_recursion_depth -= 1; // max recursion depth is reduced 
+                glm::vec3 view_pos = glm::vec3( ray.direction.x  * -1 , ray.direction.y  * -1 , ray.direction.z  * -1  ); 
+                float cosine_omega  = glm::dot( view_pos , normal ) / ( glm::length( normal ) * glm::length(view_pos));
+                glm::vec3 vr = - view_pos +  normal * cosine_omega * 2.0f ;  
+                Ray recursion_ray( hit_point , vr );
+                glm::vec3 recursion_color = color_pixel(scene , recursion_ray );
+                color =  color + recursion_color; 
+            }
             
         }
         

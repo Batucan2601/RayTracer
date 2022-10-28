@@ -161,7 +161,6 @@ void parser::Scene::loadFromXml(const std::string &filepath)
         materials.push_back(material);
         element = element->NextSiblingElement("Material");
     }
-    std::cout << "4 " << std::endl;  
 
     //Get VertexData
     element = root->FirstChildElement("VertexData");
@@ -172,11 +171,9 @@ void parser::Scene::loadFromXml(const std::string &filepath)
          
         stream >> vertex.y >> vertex.z;
         vertex_data.push_back(vertex);
-
         std::cout << vertex.x << " " << vertex.y << " " << vertex.z  << std::endl;  
 
     }
-    std::cout << "5 " << std::endl;  
 
     stream.clear();
 

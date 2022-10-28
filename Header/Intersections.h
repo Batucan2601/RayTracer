@@ -133,9 +133,11 @@ static bool ray_sphere_intersection(const Ray& ray , const parser::Sphere& spher
     float b = 2 * glm::dot(k , O-center );
     float c = glm::dot(O-center , O-center) - (sphere.radius * sphere.radius );
     float discriminant =  b*b - 4 * a * c; 
+    
     #ifdef DEBUG 
     if( isnan(discriminant))
     {
+
         std::cout << " starrt " << std::endl; 
         std::cout << "center " << center.x << " " << center.y << " " << center.z << std::endl;
         std::cout << "a " <<  a <<   " b "  << b  << " c " << c <<  std::endl; 
@@ -209,7 +211,6 @@ static bool ray_sphere_intersection(const Ray& ray , const parser::Sphere& spher
 //a mesh intersection 
 static bool calculate_intersection(parser::Scene& scene ,parser::Mesh& object ,const Ray & ray , glm::vec3 & intersection_normal ,  glm::vec3 & intersection_point  )
 {
-    
     std::vector<glm::vec3> hit_points; // there can be multiple hitpoints for an object 
     std::vector<glm::vec3> normals; 
     for (size_t i = 0; i < object.faces.size(); i++)

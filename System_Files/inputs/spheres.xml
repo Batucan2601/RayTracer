@@ -11,7 +11,7 @@
             <NearPlane> -1 1 -1 1 10</NearPlane>
             <NearDistance>10</NearDistance>
             <ImageResolution> 720 720 </ImageResolution>
-            <ImageName> spheres.png </ImageName>
+            <ImageName> spheres.bpp </ImageName>
         </Camera>
     </Cameras>
 
