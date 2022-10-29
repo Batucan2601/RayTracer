@@ -352,6 +352,10 @@ static bool ray_object_intersection( const Ray & ray , parser::Scene & scene , g
                 hit_points.push_back(intersection_point );
                 normals.push_back(intersection_normal );
                 materials.push_back(scene.materials[scene.spheres[sphere_count].material_id - 1] );
+                if( scene.spheres[sphere_count].material_id - 1 == 1 )
+                {
+                    std::cout <<  " material 2 " << std::endl ; 
+                }
                 object_id_list.push_back(object_id);
                 
             }
@@ -379,7 +383,6 @@ static bool ray_object_intersection( const Ray & ray , parser::Scene & scene , g
     }
  
     //now we found the hitpoints get the smallest of them and return black if nothing found
-    
     if( hit_points.size() == 0 )
     {
         return false; 
@@ -411,3 +414,73 @@ static bool ray_object_intersection( const Ray & ray , parser::Scene & scene , g
 
 }
 
+static bool calculate_second_hitpoint_in_same_object( parser::Scene & scene , const Ray & refracted_ray ,  glm::vec3 & hit_point , glm::vec3 & normal  , int & object_id , glm::vec3 & second_hit_point  , glm::vec3 & second_normal   )
+{
+    // fetch the object with 
+    // 1 - meshes
+    // 2 - spheres
+    // 3 - triangles
+    parser::Mesh mesh;
+    parser::Sphere sphere;
+    parser::Triangle triangle;
+    bool if_mesh = false; 
+    bool if_sphere = false; 
+    bool if_triangle = false; 
+
+    if( object_id < scene.meshes.size() )
+    {
+        if_mesh = true; 
+        mesh = scene.meshes[object_id];
+    }
+    else if( object_id < scene.spheres.size() )
+    {
+        if_sphere = true; 
+        sphere = scene.spheres[object_id - scene.meshes.size() + 1 ];
+    }
+    else if( object_id < scene.triangles.size() )
+    {
+        if_triangle = true; 
+        triangle = scene.triangles[object_id - scene.meshes.size() + 1  - scene.triangles.size() + 1 ];
+    }
+    
+    if( if_mesh )
+    {
+
+        bool is_intersection = calculate_intersection(scene, mesh , refracted_ray , second_normal , second_hit_point);
+        if(!is_intersection)
+        {
+            std::cout << " cannot found second hit_point in mesh" << std::endl;
+            return false;
+        }
+        return true;  
+    }
+    else if( if_sphere )
+    {
+
+        bool is_intersection = calculate_intersection(scene, sphere , refracted_ray , second_normal , second_hit_point);
+        if(!is_intersection)
+        {
+            std::cout << " cannot found second hit_point in sphere" << std::endl;
+            return false;
+
+        }
+        return true;  
+    }
+    else if( if_triangle )
+    {
+        bool is_intersection = calculate_intersection(scene, triangle , refracted_ray , second_normal , second_hit_point);
+        if(!is_intersection)
+        {
+            std::cout << " cannot found second hit_point in triangle" << std::endl;
+            return false;
+
+        }
+        return true;  
+    }
+    else
+    {
+        std::cout <<  " a problem  has occured " <<  std::endl; 
+        return true ;
+    }
+
+}

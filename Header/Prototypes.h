@@ -13,5 +13,6 @@ static bool ray_triangle_intersection(const Ray& ray , const glm::vec3 & p1 ,con
 static bool is_point_in_triangle(const glm::vec3 & p1 ,const glm::vec3 & p2 , const glm::vec3 & p3 , const glm::vec3 & hitpoint);
 static bool ray_object_intersection( const Ray & ray , parser::Scene & scene , glm::vec3 &hitpoint , glm::vec3 & normal , parser::Material &material ,  int &  prev_object_id  , bool is_shadow_rays_active  );
 static bool calculate_intersection(parser::Scene& scene ,parser::Triangle& object ,const Ray & ray , glm::vec3 & intersection_normal ,  glm::vec3 & intersection_point  );
+static bool calculate_second_hitpoint_in_same_object( parser::Scene & scene , const Ray & refracted_ray ,  glm::vec3 & hit_point , glm::vec3 & normal  , int & object_id , glm::vec3 & second_hit_point  , glm::vec3 & second_normal   );
 
 

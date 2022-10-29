@@ -2,7 +2,6 @@
     <BackgroundColor>0 0 0</BackgroundColor>
 
     <ShadowRayEpsilon>1e-3</ShadowRayEpsilon>
-
     <IntersectionTestEpsilon>1e-6</IntersectionTestEpsilon>
 
     <Cameras>
@@ -32,7 +31,7 @@
             <SpecularReflectance>1 1 1</SpecularReflectance>
             <PhongExponent>30</PhongExponent>
         </Material>
-        <Material id="2">
+        <Material id="2" >
             <AmbientReflectance>1 1 1</AmbientReflectance>
             <DiffuseReflectance>0.2 0.2 1.0</DiffuseReflectance>
             <SpecularReflectance>1 1 1</SpecularReflectance>
@@ -51,7 +50,7 @@
             <Center>1</Center>
             <Radius>1.0</Radius>
         </Sphere>
-        <Sphere id="1">
+        <Sphere id="2">
             <Material>2</Material>
             <Center>2</Center>
             <Radius>0.4</Radius>

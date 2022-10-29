@@ -43,11 +43,15 @@ namespace parser
     struct Material
     {
         bool is_mirror;
+        bool is_dielectric;
+        bool is_conductor;
         Vec3f ambient;
         Vec3f diffuse;
         Vec3f specular;
         Vec3f mirror;
+        Vec3f absorptionCoefficient; 
         float phong_exponent;
+        float refraction_index;
     };
 
     struct Face

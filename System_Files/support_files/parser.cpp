@@ -126,12 +126,17 @@ void parser::Scene::loadFromXml(const std::string &filepath)
     while (element)
     {
         material.is_mirror = (element->Attribute("type", "mirror") != NULL);
-
+        material.is_dielectric = (element->Attribute("type", "dielectric") != NULL);
+        material.is_conductor = (element->Attribute("type", "conductor") != NULL);
         child = element->FirstChildElement("AmbientReflectance");
         if( child != NULL)
         {
             stream << child->GetText() << std::endl;
             stream >> material.ambient.x >> material.ambient.y >> material.ambient.z;
+        }
+        else
+        {
+
         }
         child = element->FirstChildElement("DiffuseReflectance");
         if( child != NULL)
@@ -159,14 +164,29 @@ void parser::Scene::loadFromXml(const std::string &filepath)
             stream >> material.phong_exponent;
         }
         materials.push_back(material);
+        child = element->FirstChildElement("AbsorptionCoefficient");
+        if( child != NULL)
+        {
+            stream << child->GetText() << std::endl;
+            stream >> material.absorptionCoefficient.x >> material.absorptionCoefficient.y >> material.absorptionCoefficient.z ;
+        }
+        child = element->FirstChildElement("RefractionIndex");
+        if( child != NULL)
+        {
+            stream << child->GetText() << std::endl;
+            stream >> material.refraction_index;
+        }
+        materials.push_back(material);
         element = element->NextSiblingElement("Material");
     }
+    std::cout << "4 " << std::endl;
 
     //Get VertexData
     element = root->FirstChildElement("VertexData");
     stream << element->GetText() << std::endl;
+    std::cout << element->GetText();
     Vec3f vertex;
-    while (!(stream >> vertex.x).eof())
+    while (!(stream >> vertex.x).eof() )
     {
          
         stream >> vertex.y >> vertex.z;
