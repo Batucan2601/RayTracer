@@ -3,7 +3,7 @@
 #include "../System_Files/support_files/parser.h"
 struct Object
 {
-    glm::vec3 color = glm::vec3(1.0f , 1.0f , 0.0f ); 
+    parser::Vec3f color = parser::Vec3f(1.0f , 1.0f , 0.0f ); 
 };
 struct Plane : Object
 {
@@ -24,20 +24,20 @@ struct Plane : Object
 struct Sphere : Object
 {
 
-    Sphere(const glm::vec3 & center , const float & radius )
+    Sphere(const parser::Vec3f & center , const float & radius )
     {
         this->radius = radius;
         this->center = center; 
     }
-    glm::vec3 center; 
+    parser::Vec3f center; 
     float radius; 
 };
 class Ray
 {
     public:
-    Ray(glm::vec3 origin , glm::vec3 point2 ); //direction comes out normalized
-    //Ray( glm::vec3 origin , glm::vec3  p2  );
-    glm::vec3 origin;
-    glm::vec3 direction;
+    Ray(parser::Vec3f origin , parser::Vec3f point2 ); //direction comes out normalized
+    //Ray( parser::Vec3f origin , parser::Vec3f  p2  );
+    parser::Vec3f origin;
+    parser::Vec3f direction;
 };
 

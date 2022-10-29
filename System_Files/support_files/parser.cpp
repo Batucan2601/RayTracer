@@ -334,6 +334,12 @@ parser::Vec3f parser::normalize( const  parser::Vec3f &  vec1 )
     return new_vec;
 
 }
+float parser::distance(const  parser::Vec3f &  vec1 ,  const  parser::Vec3f & vec2   )
+{
+    return std::sqrt(  (vec1.x - vec2.x ) * (vec1.x - vec2.x )  + (vec1.y - vec2.y ) * (vec1.y - vec2.y ) + (vec1.z - vec2.z ) * (vec1.z - vec2.z )   ); 
+}
+
+
 parser::Vec3f::Vec3f(float x  , float y , float z )
 {
     this->x = x;
@@ -346,5 +352,114 @@ parser::Vec3f::Vec3f()
     this->x = 0;
     this->y = 0;
     this->z = 0;
+
+}
+parser::Vec3f parser::Vec3f::operator +(const parser::Vec3f & vec1   )
+{
+    parser::Vec3f vec;
+    vec.x = vec1.x + this->x; 
+    vec.y = vec1.y + this->y; 
+    vec.z = vec1.z + this->z; 
+    return vec;
+}
+parser::Vec3f parser::Vec3f::operator -(const parser::Vec3f & vec1   )
+{
+    parser::Vec3f vec;
+    vec.x = vec1.x - this->x; 
+    vec.y = vec1.y - this->y; 
+    vec.z = vec1.z - this->z;
+    return vec;
+
+}
+parser::Vec3f parser::Vec3f::operator *(const parser::Vec3f & vec1   )
+{
+    parser::Vec3f vec;
+    vec.x = vec1.x * this->x; 
+    vec.y = vec1.y * this->y; 
+    vec.z = vec1.z * this->z; 
+    return vec;
+
+}
+parser::Vec3f parser::Vec3f::operator /(const parser::Vec3f & vec1   )
+{
+    parser::Vec3f vec;
+    vec.x = vec1.x / this->x; 
+    vec.y = vec1.y / this->y; 
+    vec.z = vec1.z / this->z; 
+    return vec;
+
+}
+// int 
+parser::Vec3f parser::Vec3f::operator *(const int & num   )
+{
+    parser::Vec3f vec;
+    vec.x = num * this->x; 
+    vec.y = num * this->y; 
+    vec.z = num * this->z; 
+    return vec;
+
+}
+parser::Vec3f parser::Vec3f::operator /(const int & num   )
+{
+    parser::Vec3f vec;
+    vec.x = num / this->x; 
+    vec.y = num / this->y; 
+    vec.z = num / this->z; 
+    return vec;
+
+}
+parser::Vec3f parser::Vec3f::operator +(const int & num   )
+{
+    parser::Vec3f vec;
+    vec.x = num + this->x; 
+    vec.y = num + this->y; 
+    vec.z = num + this->z; 
+    return vec;
+
+}
+parser::Vec3f parser::Vec3f::operator -(const int & num   )
+{
+    parser::Vec3f vec;
+    vec.x = num - this->x; 
+    vec.y = num - this->y; 
+    vec.z = num - this->z; 
+    return vec;
+
+}
+
+parser::Vec3f parser::Vec3f::operator *(const float & num   )
+{
+    parser::Vec3f vec;
+    vec.x = num * this->x; 
+    vec.y = num * this->y; 
+    vec.z = num * this->z; 
+    return vec;
+
+}
+parser::Vec3f parser::Vec3f::operator /(const float & num   )
+{
+    parser::Vec3f vec;
+    vec.x = num / this->x; 
+    vec.y = num / this->y; 
+    vec.z = num / this->z; 
+    return vec;
+
+}
+parser::Vec3f parser::Vec3f::operator +(const float & num   )
+{
+    parser::Vec3f vec;
+    vec.x = num + this->x; 
+    vec.y = num + this->y; 
+    vec.z = num + this->z; 
+    return vec;
+
+}
+parser::Vec3f parser::Vec3f::operator -(const float & num   )
+{
+    parser::Vec3f vec;
+    vec.x = num - this->x; 
+    vec.y = num - this->y; 
+    vec.z = num - this->z; 
+    return vec;
 
 }

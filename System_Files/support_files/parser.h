@@ -12,6 +12,23 @@ namespace parser
         public:
         Vec3f();
         Vec3f( float x , float y , float z );
+        Vec3f operator +(const Vec3f & vec1   );
+        Vec3f operator -(const Vec3f & vec1   );
+        Vec3f operator *(const Vec3f & vec1   );
+        Vec3f operator /(const Vec3f & vec1   );
+        Vec3f operator *(const int & num   );
+        Vec3f operator +(const int & num   );
+        Vec3f operator -(const int & num   );
+        Vec3f operator /(const int & num   );
+        Vec3f operator *(const float & num   );
+        Vec3f operator +(const float & num   );
+        Vec3f operator -(const float & num   );
+        Vec3f operator /(const float & num   );
+
+
+
+
+        //members
         float x, y, z;
     };
 
@@ -105,6 +122,7 @@ namespace parser
     Vec3f cross( const Vec3f& vec1 , const Vec3f & vec2 );
     float length(const Vec3f & vec1 );
     Vec3f normalize( const  Vec3f &  vec1 );
+    float distance(const  Vec3f &  vec1 ,  const  Vec3f & vec2   );
 
     
 }

@@ -1,13 +1,13 @@
 #include "Renderer.h"
-#include <math.h>       /* isnan, sqrt */
+#include <math.h>       /* isnan, std */
 // intersections and stuff 
-static bool ray_triangle_intersection( const Ray &ray , const parser::Scene& scene ,  glm::vec3 intersection_point  )
+static bool ray_triangle_intersection( const Ray &ray , const parser::Scene& scene ,  parser::Vec3f intersection_point  )
 {
      
 }
-static bool ray_plane_intersection(const Ray& ray , const glm::vec3 & p1 ,  const glm::vec3 & normal , glm::vec3 & hitpoint  )
+static bool ray_plane_intersection(const Ray& ray , const parser::Vec3f & p1 ,  const parser::Vec3f & normal , parser::Vec3f & hitpoint  )
 {
-    float n_d = glm::dot(glm::normalize(normal) , glm::normalize(ray.direction ) );
+    float n_d = parser::dot(parser::normalize(normal) , parser::normalize(ray.direction ) );
     if( n_d < 1e-8 && n_d > -1e-8  ) //parallel dot 0 
     {
         #ifdef DEBUG
@@ -19,11 +19,11 @@ static bool ray_plane_intersection(const Ray& ray , const glm::vec3 & p1 ,  cons
 
         return false; 
     }
-    glm::vec3 ro_p = p1 - ray.origin;
-    float t = glm::dot(ro_p , normal ) / n_d; 
+    parser::Vec3f ro_p = (parser::Vec3f)p1 - (parser::Vec3f)ray.origin;
+    float t = parser::dot(ro_p , normal ) / n_d; 
 
     //plug t
-    hitpoint = ray.origin + ray.direction * t; 
+    hitpoint = (parser::Vec3f)ray.origin + (parser::Vec3f)ray.direction * t; 
     #ifdef DEBUG
 
     //std::cout << hitpoint.x << " " << hitpoint.y << "  " << hitpoint.z << std::endl; 
@@ -50,21 +50,21 @@ static bool ray_plane_intersection(const Ray& ray , const glm::vec3 & p1 ,  cons
 
     
 }
-static bool is_point_in_triangle(const glm::vec3 & p1 ,const glm::vec3 & p2 , const glm::vec3 & p3 , const glm::vec3 & hitpoint)
+static bool is_point_in_triangle(const parser::Vec3f & p1 ,const parser::Vec3f & p2 , const parser::Vec3f & p3 , const parser::Vec3f & hitpoint)
 {
     // assume same plane
 
-    /*glm::vec3 AB  = p2 - p1; 
-    glm::vec3 BC  = p3 - p2;
-    glm::vec3 CA  = p1 - p3;
-    glm::vec3 AP  = hitpoint - p1;
-    glm::vec3 BP  = hitpoint - p2;
-    glm::vec3 CP  = hitpoint - p3;
+    /*parser::Vec3f AB  = p2 - p1; 
+    parser::Vec3f BC  = p3 - p2;
+    parser::Vec3f CA  = p1 - p3;
+    parser::Vec3f AP  = hitpoint - p1;
+    parser::Vec3f BP  = hitpoint - p2;
+    parser::Vec3f CP  = hitpoint - p3;
 
 
-    glm::vec3 ABPA = glm::cross(AB , AP);
-    glm::vec3 BCPB = glm::cross(BC , BP);
-    glm::vec3 CAPC = glm::cross(CA , CP );
+    parser::Vec3f ABPA = parser::cross(AB , AP);
+    parser::Vec3f BCPB = parser::cross(BC , BP);
+    parser::Vec3f CAPC = parser::cross(CA , CP );
 
     if( ! ( (ABPA.x >= 0.0f && BCPB.x >= 0.0calculate_intersection
        // all not same sign means it is 
@@ -81,28 +81,28 @@ static bool is_point_in_triangle(const glm::vec3 & p1 ,const glm::vec3 & p2 , co
        return false; 
     }
     return true;*/
-    glm::vec3 normal = glm::cross(p2 - p1 , p3 - p1 );
+    parser::Vec3f normal = parser::cross((parser::Vec3f)p2 - (parser::Vec3f)p1 , (parser::Vec3f)p3 - (parser::Vec3f)p1 );
     
-    glm::vec3 C1 = glm::cross( p2 - p1 , hitpoint - p1  );
+    parser::Vec3f C1 = parser::cross( (parser::Vec3f)p2 - (parser::Vec3f)p1 , (parser::Vec3f)hitpoint - (parser::Vec3f)p1  );
     
-    if( glm::dot( C1 , normal) < -1e-3 )
+    if( parser::dot( C1 , normal) < -1e-3 )
     {
         return false;
     }
-    glm::vec3 C2 = glm::cross( p3 - p2 , hitpoint - p2  );
-    if( glm::dot( C2 , normal) < -1e-3 )
+    parser::Vec3f C2 = parser::cross( (parser::Vec3f)p3 - (parser::Vec3f)p2 , (parser::Vec3f)hitpoint - (parser::Vec3f)p2  );
+    if( parser::dot( C2 , normal) < -1e-3 )
     {
         return false;
     }
-    glm::vec3 C3 = glm::cross( p1 - p3 , hitpoint - p3  );
-    if( glm::dot( C3 , normal) < -1e-3 )
+    parser::Vec3f C3 = parser::cross( (parser::Vec3f)p1 - (parser::Vec3f)p3 , (parser::Vec3f)hitpoint - (parser::Vec3f)p3  );
+    if( parser::dot( C3 , normal) < -1e-3 )
     {
         return false;
     }
     return true; 
 
 }
-static bool ray_triangle_intersection(const Ray& ray , const glm::vec3 & p1 ,const  glm::vec3 & p2 , const glm::vec3 &  p3 , const glm::vec3  & normal , glm::vec3 & hitpoint )
+static bool ray_triangle_intersection(const Ray& ray , const parser::Vec3f & p1 ,const  parser::Vec3f & p2 , const parser::Vec3f &  p3 , const parser::Vec3f  & normal , parser::Vec3f & hitpoint )
 {
   // I will do the inefficent method since I am used to it
   
@@ -118,20 +118,20 @@ static bool ray_triangle_intersection(const Ray& ray , const glm::vec3 & p1 ,con
     
     return is_in_triangle;
 }
-static bool ray_sphere_intersection(const Ray& ray , const parser::Sphere& sphere , const glm::vec3 & center , glm::vec3 &normal ,  glm::vec3 & hitpoint  )
+static bool ray_sphere_intersection(const Ray& ray , const parser::Sphere& sphere , const parser::Vec3f & center , parser::Vec3f &normal ,  parser::Vec3f & hitpoint  )
 {
     // at^2 + bT + c = 0
-    glm::vec3 O = ray.origin; 
-    glm::vec3 k = ray.direction; 
+    parser::Vec3f O = ray.origin; 
+    parser::Vec3f k = ray.direction; 
 
     /*float a  = 3.0f;
     float b = 2 * ( O.x * k.x + O.y * k.y + O.z * k.z ) -2*(k.x * center.x + k.y * center.y + k.z * center.z ); 
-    float c = glm::dot(O , O ) + glm::dot(center,center) + -2*(O.x*center.x + O.y*center.y + O.z*center.z) -3 * sphere.radius * sphere.radius;
+    float c = parser::dot(O , O ) + parser::dot(center,center) + -2*(O.x*center.x + O.y*center.y + O.z*center.z) -3 * sphere.radius * sphere.radius;
     */
 
-    float a = glm::dot(k , k );
-    float b = 2 * glm::dot(k , O-center );
-    float c = glm::dot(O-center , O-center) - (sphere.radius * sphere.radius );
+    float a = parser::dot(k , k );
+    float b = 2 * parser::dot(k , O-center );
+    float c = parser::dot(O-center , O-center) - (sphere.radius * sphere.radius );
     float discriminant =  b*b - 4 * a * c; 
     
     #ifdef DEBUG 
@@ -156,29 +156,29 @@ static bool ray_sphere_intersection(const Ray& ray , const parser::Sphere& spher
         {
             return false; 
         }
-        hitpoint = O + root * k;
+        hitpoint = (parser::Vec3f)O +  (parser::Vec3f)k * root;
 
         //calculate normal 
-        normal = glm::normalize( hitpoint - center );
+        normal = parser::normalize( hitpoint - center );
         return true;  
     }
     // else there are two roots
 
-    float root_1 =  (-b-glm::sqrt(discriminant) )  / (2*a);
-    float root_2 = (-b+glm::sqrt(discriminant) ) / (2*a);
+    float root_1 =  (-b-std::sqrt(discriminant) )  / (2*a);
+    float root_2 = (-b+std::sqrt(discriminant) ) / (2*a);
     if( root_1 < 0 && root_2 < 0  )
     {
         return false; 
     }
     //two hitpoints
-    glm::vec3 h1 = O + root_1 * k;
-    glm::vec3 h2 = O + root_2 * k;
+    parser::Vec3f h1 = O + k *root_1;
+    parser::Vec3f h2 = O + k *root_2;
     if( root_1 > 0 && root_2 > 0 )
     {
         
         //get the smaller length root * k;
-        float d1 = glm::distance( O ,  h1 );
-        float d2 = glm::distance( O ,  h2 );
+        float d1 = parser::distance( O ,  h1 );
+        float d2 = parser::distance( O ,  h2 );
         if( d1 > d2 )
         {
             hitpoint = h2; 
@@ -202,26 +202,26 @@ static bool ray_sphere_intersection(const Ray& ray , const parser::Sphere& spher
     
     
     //calculate normal
-    normal = glm::normalize( hitpoint - center );
+    normal = parser::normalize( hitpoint - center );
     return true; 
 
 }
 
 
 //a mesh intersection 
-static bool calculate_intersection(parser::Scene& scene ,parser::Mesh& object ,const Ray & ray , glm::vec3 & intersection_normal ,  glm::vec3 & intersection_point  )
+static bool calculate_intersection(parser::Scene& scene ,parser::Mesh& object ,const Ray & ray , parser::Vec3f & intersection_normal ,  parser::Vec3f & intersection_point  )
 {
-    std::vector<glm::vec3> hit_points; // there can be multiple hitpoints for an object 
-    std::vector<glm::vec3> normals; 
+    std::vector<parser::Vec3f> hit_points; // there can be multiple hitpoints for an object 
+    std::vector<parser::Vec3f> normals; 
     for (size_t i = 0; i < object.faces.size(); i++)
     {
         //get points
-        glm::vec3 p1 = glm::vec3( scene.vertex_data[ (object.faces[i].v0_id-1)    ].x , scene.vertex_data[ (object.faces[i].v0_id-1)    ].y , scene.vertex_data[ (object.faces[i].v0_id-1)  ].z); 
-        glm::vec3 p2 = glm::vec3( scene.vertex_data[ (object.faces[i].v1_id-1)   ].x , scene.vertex_data[ (object.faces[i].v1_id-1)  ].y , scene.vertex_data[ (object.faces[i].v1_id-1)   ].z);
-        glm::vec3 p3 = glm::vec3( scene.vertex_data[ (object.faces[i].v2_id-1)   ].x , scene.vertex_data[ (object.faces[i].v2_id-1)    ].y , scene.vertex_data[ (object.faces[i].v2_id-1)   ].z);
+        parser::Vec3f p1 = parser::Vec3f( scene.vertex_data[ (object.faces[i].v0_id-1)    ].x , scene.vertex_data[ (object.faces[i].v0_id-1)    ].y , scene.vertex_data[ (object.faces[i].v0_id-1)  ].z); 
+        parser::Vec3f p2 = parser::Vec3f( scene.vertex_data[ (object.faces[i].v1_id-1)   ].x , scene.vertex_data[ (object.faces[i].v1_id-1)  ].y , scene.vertex_data[ (object.faces[i].v1_id-1)   ].z);
+        parser::Vec3f p3 = parser::Vec3f( scene.vertex_data[ (object.faces[i].v2_id-1)   ].x , scene.vertex_data[ (object.faces[i].v2_id-1)    ].y , scene.vertex_data[ (object.faces[i].v2_id-1)   ].z);
        
 
-        glm::vec3 normal = glm::normalize(glm::cross((p2-p1) , (p3-p1)) );
+        parser::Vec3f normal = parser::normalize(parser::cross((p2-p1) , (p3-p1)) );
         #ifdef DEBUG 
         if (isnan(normal.x) )
         {
@@ -234,7 +234,7 @@ static bool calculate_intersection(parser::Scene& scene ,parser::Mesh& object ,c
             
         }
         #endif
-        glm::vec3 temp_intersection_point(0.0f , 0.0f , 0.f );
+        parser::Vec3f temp_intersection_point(0.0f , 0.0f , 0.f );
         if( ray_triangle_intersection(ray , p1 , p2 , p3 , normal , temp_intersection_point) )
         {
             hit_points.push_back(temp_intersection_point);
@@ -255,7 +255,7 @@ static bool calculate_intersection(parser::Scene& scene ,parser::Mesh& object ,c
     std::vector<float> distances;
     for (size_t i = 0; i < hit_points.size(); i++)
     {
-        distances.push_back(glm::distance(hit_points[i] , ray.origin) ) ;
+        distances.push_back(parser::distance(hit_points[i] , ray.origin) ) ;
     }
     float smallest_length = 99999.0f; 
     int smallest_index = 0; 
@@ -277,23 +277,23 @@ static bool calculate_intersection(parser::Scene& scene ,parser::Mesh& object ,c
     
 }
 // a sphere intersection 
-static bool calculate_intersection(parser::Scene& scene ,parser::Sphere& object , const Ray & ray , glm::vec3 & intersection_normal ,  glm::vec3 & intersection_point  )
+static bool calculate_intersection(parser::Scene& scene ,parser::Sphere& object , const Ray & ray , parser::Vec3f & intersection_normal ,  parser::Vec3f & intersection_point  )
 {
-    glm::vec3 center = glm::vec3(scene.vertex_data[object.center_vertex_id-1].x , scene.vertex_data[object.center_vertex_id-1 ].y , scene.vertex_data[object.center_vertex_id-1].z );
+    parser::Vec3f center = parser::Vec3f(scene.vertex_data[object.center_vertex_id-1].x , scene.vertex_data[object.center_vertex_id-1 ].y , scene.vertex_data[object.center_vertex_id-1].z );
     bool is_ray_intersected = ray_sphere_intersection( ray , object , center ,  intersection_normal ,   intersection_point );
     return is_ray_intersected; 
 }
 // a trianlge intersection 
-static bool calculate_intersection(parser::Scene& scene ,parser::Triangle& object ,const Ray & ray , glm::vec3 & intersection_normal ,  glm::vec3 & intersection_point  )
+static bool calculate_intersection(parser::Scene& scene ,parser::Triangle& object ,const Ray & ray , parser::Vec3f & intersection_normal ,  parser::Vec3f & intersection_point  )
 {
      //get points
-    glm::vec3 p1 = glm::vec3( scene.vertex_data[ (object.indices.v0_id-1)    ].x , scene.vertex_data[ (object.indices.v0_id-1)    ].y , scene.vertex_data[ (object.indices.v0_id-1)  ].z); 
-    glm::vec3 p2 = glm::vec3( scene.vertex_data[ (object.indices.v1_id-1)   ].x , scene.vertex_data[ (object.indices.v1_id-1)  ].y , scene.vertex_data[ (object.indices.v1_id-1)   ].z);
-    glm::vec3 p3 = glm::vec3( scene.vertex_data[ (object.indices.v2_id-1)   ].x , scene.vertex_data[ (object.indices.v2_id-1)    ].y , scene.vertex_data[ (object.indices.v2_id-1)   ].z);
+    parser::Vec3f p1 = parser::Vec3f( scene.vertex_data[ (object.indices.v0_id-1)    ].x , scene.vertex_data[ (object.indices.v0_id-1)    ].y , scene.vertex_data[ (object.indices.v0_id-1)  ].z); 
+    parser::Vec3f p2 = parser::Vec3f( scene.vertex_data[ (object.indices.v1_id-1)   ].x , scene.vertex_data[ (object.indices.v1_id-1)  ].y , scene.vertex_data[ (object.indices.v1_id-1)   ].z);
+    parser::Vec3f p3 = parser::Vec3f( scene.vertex_data[ (object.indices.v2_id-1)   ].x , scene.vertex_data[ (object.indices.v2_id-1)    ].y , scene.vertex_data[ (object.indices.v2_id-1)   ].z);
 
-    glm::vec3 normal = glm::normalize(glm::cross((p2-p1) , (p3-p1)) );
+    parser::Vec3f normal = parser::normalize(parser::cross((p2-p1) , (p3-p1)) );
 
-    glm::vec3 temp_intersection_point(0.0f , 0.0f , 0.f );
+    parser::Vec3f temp_intersection_point(0.0f , 0.0f , 0.f );
     if( ray_triangle_intersection(ray , p1 , p2 , p3 , normal , temp_intersection_point) )
     {
         intersection_normal = normal;
@@ -304,10 +304,10 @@ static bool calculate_intersection(parser::Scene& scene ,parser::Triangle& objec
     return false; 
 }
 
-static bool ray_object_intersection( const Ray & ray , parser::Scene & scene , glm::vec3 &hitpoint , glm::vec3 & normal , parser::Material &material ,   int &  prev_object_id  , bool is_shadow_rays_active  )
+static bool ray_object_intersection( const Ray & ray , parser::Scene & scene , parser::Vec3f &hitpoint , parser::Vec3f & normal , parser::Material &material ,   int &  prev_object_id  , bool is_shadow_rays_active  )
 {
-    std::vector<glm::vec3> hit_points;
-    std::vector<glm::vec3> normals;
+    std::vector<parser::Vec3f> hit_points;
+    std::vector<parser::Vec3f> normals;
     std::vector<parser::Material> materials; 
     std::vector<float> distances;
     std::vector<int> object_id_list;
@@ -323,8 +323,8 @@ static bool ray_object_intersection( const Ray & ray , parser::Scene & scene , g
         {
             break; 
         }
-        glm::vec3 intersection_point(0.0f , 0.0f ,0.0f);  
-        glm::vec3 intersection_normal(0.0f , 0.0f ,0.0f);  
+        parser::Vec3f intersection_point(0.0f , 0.0f ,0.0f);  
+        parser::Vec3f intersection_normal(0.0f , 0.0f ,0.0f);  
         bool is_interected_with_this_triangle = false; 
         bool is_intersected_with_this_object = false; 
         bool is_intersected_with_this_sphere = false; 
@@ -385,7 +385,7 @@ static bool ray_object_intersection( const Ray & ray , parser::Scene & scene , g
     }
     for (size_t i = 0; i < hit_points.size(); i++)
     {
-        distances.push_back(glm::distance(hit_points[i] , ray.origin));
+        distances.push_back(parser::distance(hit_points[i] , ray.origin));
     }
 
     float smallest_length = 999999;
@@ -410,7 +410,7 @@ static bool ray_object_intersection( const Ray & ray , parser::Scene & scene , g
 
 }
 
-static bool calculate_second_hitpoint_in_same_object( parser::Scene & scene , const Ray & refracted_ray ,  glm::vec3 & hit_point , glm::vec3 & normal  , int & object_id , glm::vec3 & second_hit_point  , glm::vec3 & second_normal   )
+static bool calculate_second_hitpoint_in_same_object( parser::Scene & scene , const Ray & refracted_ray ,  parser::Vec3f & hit_point , parser::Vec3f & normal  , int & object_id , parser::Vec3f & second_hit_point  , parser::Vec3f & second_normal   )
 {
     // fetch the object with 
     // 1 - meshes
