@@ -328,7 +328,7 @@ static bool ray_object_intersection( const Ray & ray , parser::Scene & scene , g
         bool is_interected_with_this_triangle = false; 
         bool is_intersected_with_this_object = false; 
         bool is_intersected_with_this_sphere = false; 
-        if( mesh_count < scene.meshes.size())
+        while( mesh_count < scene.meshes.size())
         {
             is_intersected_with_this_object = calculate_intersection(scene , scene.meshes[mesh_count] , ray , intersection_normal ,   intersection_point );
             object_id = mesh_count + sphere_count + triangle_count; // give every object unique id 
@@ -342,7 +342,7 @@ static bool ray_object_intersection( const Ray & ray , parser::Scene & scene , g
                 mesh_count += 1; 
         }
         
-        if( sphere_count < scene.spheres.size())
+        while( sphere_count < scene.spheres.size())
         {
 
             is_intersected_with_this_sphere = calculate_intersection(scene , scene.spheres[sphere_count] ,  ray ,   intersection_normal , intersection_point );
@@ -352,10 +352,6 @@ static bool ray_object_intersection( const Ray & ray , parser::Scene & scene , g
                 hit_points.push_back(intersection_point );
                 normals.push_back(intersection_normal );
                 materials.push_back(scene.materials[scene.spheres[sphere_count].material_id - 1] );
-                if( scene.spheres[sphere_count].material_id - 1 == 1 )
-                {
-                    std::cout <<  " material 2 " << std::endl ; 
-                }
                 object_id_list.push_back(object_id);
                 
             }
@@ -364,7 +360,7 @@ static bool ray_object_intersection( const Ray & ray , parser::Scene & scene , g
 
         }
 
-        if( triangle_count < scene.triangles.size() )
+        while( triangle_count < scene.triangles.size() )
         {
             is_interected_with_this_triangle = calculate_intersection(scene , scene.triangles[triangle_count] ,  ray ,   intersection_normal , intersection_point );
             object_id = mesh_count + sphere_count + triangle_count; // give every object unique id 
@@ -427,17 +423,17 @@ static bool calculate_second_hitpoint_in_same_object( parser::Scene & scene , co
     bool if_sphere = false; 
     bool if_triangle = false; 
 
-    if( object_id < scene.meshes.size() )
+    if( object_id < scene.meshes.size()   )
     {
         if_mesh = true; 
         mesh = scene.meshes[object_id];
     }
-    else if( object_id < scene.spheres.size() )
+    else if( object_id < scene.meshes.size() +  scene.spheres.size() )
     {
         if_sphere = true; 
         sphere = scene.spheres[object_id - scene.meshes.size() + 1 ];
     }
-    else if( object_id < scene.triangles.size() )
+    else if( object_id < scene.meshes.size() +  scene.spheres.size() + scene.triangles.size() )
     {
         if_triangle = true; 
         triangle = scene.triangles[object_id - scene.meshes.size() + 1  - scene.triangles.size() + 1 ];

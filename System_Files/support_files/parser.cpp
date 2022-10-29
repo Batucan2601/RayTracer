@@ -131,11 +131,17 @@ void parser::Scene::loadFromXml(const std::string &filepath)
         child = element->FirstChildElement("AmbientReflectance");
         if( child != NULL)
         {
+            std::cout << " ambient ok " << std::endl; 
             stream << child->GetText() << std::endl;
             stream >> material.ambient.x >> material.ambient.y >> material.ambient.z;
         }
         else
         {
+            std::cout << " ambient not ok " << std::endl; 
+
+            material.ambient.x = 0.0f; 
+            material.ambient.y = 0.0f; 
+            material.ambient.z = 0.0f; 
 
         }
         child = element->FirstChildElement("DiffuseReflectance");
@@ -144,11 +150,25 @@ void parser::Scene::loadFromXml(const std::string &filepath)
             stream << child->GetText() << std::endl;
             stream >> material.diffuse.x >> material.diffuse.y >> material.diffuse.z;
         }
+        else
+        {
+            material.diffuse.x = 0.0f; 
+            material.diffuse.y = 0.0f; 
+            material.diffuse.z = 0.0f; 
+
+        }
         child = element->FirstChildElement("SpecularReflectance");
         if( child != NULL)
         {
         stream << child->GetText() << std::endl;
         stream >> material.specular.x >> material.specular.y >> material.specular.z;
+
+        }
+        else
+        {
+            material.specular.x = 0.0f;
+            material.specular.y = 0.0f;
+            material.specular.z = 0.0f;
 
         }
         child = element->FirstChildElement("MirrorReflectance");
@@ -157,24 +177,45 @@ void parser::Scene::loadFromXml(const std::string &filepath)
             stream << child->GetText() << std::endl;
             stream >> material.mirror.x >> material.mirror.y >> material.mirror.z;
         }
+        else
+        {
+            material.mirror.x =0.0f;
+            material.mirror.y =0.0f;
+            material.mirror.z =0.0f;
+
+        }
         child = element->FirstChildElement("PhongExponent");
         if( child != NULL)
         {
             stream << child->GetText() << std::endl;
             stream >> material.phong_exponent;
         }
-        materials.push_back(material);
+        else
+        {
+            material.phong_exponent = 0.0f; 
+        }
         child = element->FirstChildElement("AbsorptionCoefficient");
         if( child != NULL)
         {
             stream << child->GetText() << std::endl;
             stream >> material.absorptionCoefficient.x >> material.absorptionCoefficient.y >> material.absorptionCoefficient.z ;
         }
+        else
+        {
+            material.absorptionCoefficient.x = 0.0f;
+            material.absorptionCoefficient.y = 0.0f;
+            material.absorptionCoefficient.z = 0.0f;
+
+        }
         child = element->FirstChildElement("RefractionIndex");
         if( child != NULL)
         {
             stream << child->GetText() << std::endl;
             stream >> material.refraction_index;
+        }
+        else
+        {
+            material.refraction_index =  0.0f; 
         }
         materials.push_back(material);
         element = element->NextSiblingElement("Material");
