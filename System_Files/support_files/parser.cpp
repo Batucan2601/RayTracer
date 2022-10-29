@@ -305,3 +305,46 @@ void parser::Scene::loadFromXml(const std::string &filepath)
         element = element->NextSiblingElement("Sphere");
     }
 }
+// geometry functions
+float parser::dot( const Vec3f& vec1 , const Vec3f& vec2   )
+{
+    return vec1.x * vec2.x +  vec1.y * vec2.y + vec1.z * vec2.z;
+}
+
+parser::Vec3f parser::cross( const parser::Vec3f& vec1 , const parser::Vec3f & vec2 )
+{
+    parser::Vec3f cross; 
+    cross.x = (vec1.y * vec2.z) - (vec1.z * vec2.y);
+    cross.y = -1 * (vec1.x * vec2.z) - (vec1.z * vec2.x);
+    cross.z = (vec1.x * vec2.y) - (vec1.y * vec2.x);
+
+    return cross;
+}
+float parser::length(const parser::Vec3f & vec1 )
+{
+    return std::sqrt( vec1.x*vec1.x + vec1.y*vec1.y + vec1.z*vec1.z );
+}
+parser::Vec3f parser::normalize( const  parser::Vec3f &  vec1 )
+{
+    parser::Vec3f new_vec; 
+    float len = length(vec1);
+    new_vec.x =  vec1.x / len;
+    new_vec.y =  vec1.y / len;
+    new_vec.z =  vec1.z / len;
+    return new_vec;
+
+}
+parser::Vec3f::Vec3f(float x  , float y , float z )
+{
+    this->x = x;
+    this->y = y;
+    this->z = z;
+
+}
+parser::Vec3f::Vec3f()
+{
+    this->x = 0;
+    this->y = 0;
+    this->z = 0;
+
+}

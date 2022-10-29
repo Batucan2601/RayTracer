@@ -233,7 +233,7 @@ static glm::vec3 color_pixel(parser::Scene& scene , Ray & ray )
     else if( material.is_dielectric)
     {
         //for wt however...
-        // assume rfeeractive index of air is 1
+        // assume refractive index of air is 1
         float n1 = 1.0f; 
         float n2 = material.refraction_index;
         glm::vec3 view_pos = glm::vec3( ray.direction.x  * -1 , ray.direction.y  * -1 , ray.direction.z  * -1  ); 
@@ -242,7 +242,7 @@ static glm::vec3 color_pixel(parser::Scene& scene , Ray & ray )
         float sine_omega = glm::sqrt(1 -  ( cosine_omega*cosine_omega) );
         float sine_phi = n1/n2 *  sine_omega;
         float cosine_phi = glm::sqrt(1 -  ( sine_phi*sine_phi) );
-        glm::vec3 wt = (ray.direction + cosine_omega * normal  ) * ( n1 / n2) - normal * cosine_phi;
+        glm::vec3 wt = (ray.direction + ( cosine_omega * normal )   ) * ( n1 / n2) -  ( normal * cosine_phi ) ;
         // compute reflection ratio
         float r_parallel  = (n2 * cosine_omega - n1 * cosine_phi) / ( n2* cosine_omega + n1 * cosine_phi); 
         float r_ortho =  (n1 * cosine_omega - n2 * cosine_phi) / (n1 * cosine_omega - n2 * cosine_phi);
@@ -250,74 +250,58 @@ static glm::vec3 color_pixel(parser::Scene& scene , Ray & ray )
 
         // compute transmission ratio 
         float refraction_ratio = 1 - reflection_ratio; 
+        
         Ray reflection_ray( hit_point , hit_point + vr  );
         glm::vec3 iterated_hit_point =  hit_point +  (ray.direction * 0.0001f); // iterate a little bit
-        /*std::cout << " hitpoint  " << std::endl;
-        print_vec3(hit_point);
-        std::cout << " iterated hitpoint   " << std::endl;
-        print_vec3(iterated_hit_point);
-        std::cout << " direction " << std::endl; 
-        print_vec3( wt );*/
-
-
-        Ray refraction_ray( iterated_hit_point , iterated_hit_point + wt );
         
+        Ray refraction_ray( iterated_hit_point , iterated_hit_point + wt );
         glm::vec3 reflection_color(0.0f , 0.0f , 0.0f );
         glm::vec3 refraction_color(0.0f , 0.0f , 0.0f );
-        glm::vec3 refracted_ray_color(0.0f,0.0f,0.0f);
+        int max_rec_for_ref_rec = max_recursion_depth;
         if( max_recursion_depth > 0 )
         {
             max_recursion_depth -= 1; 
             reflection_color =  reflection_ratio * color_pixel(scene ,reflection_ray);
-            refraction_color =  refraction_ratio * color_pixel(scene ,refraction_ray);
-            
-            std::cout << " refraction color " << refraction_color.x << " " <<  reflection_color.y << " " << reflection_color.z <<  std::endl; 
-            glm::vec3 second_hit_point(0.0f , 0.0f , 0.0f );
-            glm::vec3 second_normal(0.0f ,0.0f , 0.0f );
+            //refraction_color =  refraction_ratio * color_pixel(scene ,refraction_ray);
 
-            // calculate attenuation
-            bool is_hit = calculate_second_hitpoint_in_same_object( scene , refraction_ray , hit_point , normal , object_id  , second_hit_point , second_normal);
-            if ( is_hit )
+        }
+        glm::vec3 second_hit_point(0.0f , 0.0f , 0.0f );
+        glm::vec3 second_normal(0.0f ,0.0f , 0.0f );
+        // calculate attenuation
+        bool is_hit = calculate_second_hitpoint_in_same_object( scene , refraction_ray , hit_point , normal , object_id  , second_hit_point , second_normal);
+        if ( is_hit )
+        {
+            float distance = sqrt( ( hit_point.x - second_hit_point.x) * ( hit_point.x - second_hit_point.x)  + ( hit_point.y - second_hit_point.y) * ( hit_point.y - second_hit_point.y) + ( hit_point.z - second_hit_point.z) * ( hit_point.z - second_hit_point.z)    ); 
+            // now exit the medium 
+            // now n1 and n2 are swaped
+            float temp_n = n2;
+            n2 = n1;
+            n1 = temp_n;
+
+            glm::vec3 incoming_ray =  refraction_ray.direction;
+            float cosine_omega  = glm::dot( incoming_ray , normal ) / ( glm::length( normal ) * glm::length(incoming_ray));
+            float sine_omega = glm::sqrt(1 -  ( cosine_omega*cosine_omega) );
+            float sine_phi = n1/n2 *  sine_omega;
+            float cosine_phi = glm::sqrt(1 -  ( sine_phi*sine_phi) );
+            glm::vec3 wt = (incoming_ray + (cosine_omega * normal)  ) * ( n1 / n2) -  ( normal * cosine_phi ) ;
+            Ray out_ray( second_hit_point + second_normal * ( 0.01f) ,  second_hit_point + wt );
+
+            if( max_recursion_depth > 0 )
             {
-                float distance = sqrt( ( hit_point.x - second_hit_point.x) * ( hit_point.x - second_hit_point.x)  + ( hit_point.y - second_hit_point.y) * ( hit_point.y - second_hit_point.y) + ( hit_point.z - second_hit_point.z) * ( hit_point.z - second_hit_point.z)    ); 
-                // now exit the medium 
-                // now n1 and n2 are swaped
-                float temp_n = n2;
-                n2 = n1;
-                n1 = temp_n;
-
-                glm::vec3 incoming_ray =  refraction_ray.direction;
-                float cosine_omega  = glm::dot( incoming_ray , normal ) / ( glm::length( normal ) * glm::length(incoming_ray));
-                float sine_omega = glm::sqrt(1 -  ( cosine_omega*cosine_omega) );
-                float sine_phi = n1/n2 *  sine_omega;
-                float cosine_phi = glm::sqrt(1 -  ( sine_phi*sine_phi) );
-                glm::vec3 wt = (incoming_ray + cosine_omega * normal  ) * ( n1 / n2) - normal * cosine_phi;
-                Ray out_ray( second_hit_point + normal * ( 0.01f) ,  second_hit_point + wt );
-
-                if( max_recursion_depth > 0 )
-                {
-                    max_recursion_depth -= 1; 
-                    refracted_ray_color = color_pixel(scene , out_ray  );
-                    glm::vec3 c  = glm::vec3( material.absorptionCoefficient.x ,  material.absorptionCoefficient.y  ,  material.absorptionCoefficient.z )  ;
-                    float e = 2.7182818f;
-                    refracted_ray_color.x = refracted_ray_color.x * powf32(e , -1 * c.x * distance  );
-                    refracted_ray_color.y = refracted_ray_color.y * powf32(e , -1 * c.y * distance  );
-                    refracted_ray_color.z = refracted_ray_color.z * powf32(e , -1 * c.z * distance  );
-                }
-            }
-            else
-            {
-               // std::cout << " wtf error has occured " << std::endl;
-              //  exit(1); 
+                max_recursion_depth -= 1; 
+                refraction_color = refraction_ratio *  color_pixel(scene , out_ray  ); // L(0)
+                glm::vec3 c  = glm::vec3( material.absorptionCoefficient.x ,  material.absorptionCoefficient.y  ,  material.absorptionCoefficient.z )  ;
+                float e = 2.7182818f;
+                refraction_color.x = refraction_color.x * powf32(e , -1 * c.x * distance  );
+                refraction_color.y = refraction_color.y * powf32(e , -1 * c.y * distance  );
+                refraction_color.z = refraction_color.z * powf32(e , -1 * c.z * distance  );
             }
         }
-        
-        color += refracted_ray_color + reflection_color + refraction_color;
+        color +=  reflection_color + refraction_color;
 
     }
     else if( material.is_conductor)
     {
-        std::cout << "object id " << object_id <<  " " <<material.mirror.x << " " <<  material.mirror.y << " " << material.mirror.z <<  std::endl; 
         
         //for wt however...
         // assume rfeeractive index of air is 1
@@ -337,11 +321,17 @@ static glm::vec3 color_pixel(parser::Scene& scene , Ray & ray )
         float reflection_ratio = 0.5f * ( r_s + r_p);
 
         // compute transmission ratio 
-        Ray reflection_ray( hit_point , hit_point + vr  );
-        glm::vec3 iterated_hit_point =  hit_point + (normal * 0.01f); // iterate a little bit
-        glm::vec3 reflection_color =  reflection_ratio * color_pixel(scene ,reflection_ray);
-        reflection_color = glm::vec3( reflection_color.x * material.mirror.x , reflection_color.y * material.mirror.y , reflection_color.z * material.mirror.z);
-        color += reflection_color; 
+        if( max_recursion_depth > 0 )
+        {
+            max_recursion_depth -= 1; 
+            Ray reflection_ray( hit_point , hit_point + vr  );
+            glm::vec3 iterated_hit_point =  hit_point + (normal * 0.01f); // iterate a little bit
+            glm::vec3 reflection_color =  reflection_ratio * color_pixel(scene ,reflection_ray);
+            reflection_color = glm::vec3( reflection_color.x * material.mirror.x , reflection_color.y * material.mirror.y , reflection_color.z * material.mirror.z);
+            color += reflection_color; 
+            
+        }
+       
 
     }
     //clamp color

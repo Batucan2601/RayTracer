@@ -1,15 +1,17 @@
 #ifndef __HW1__PARSER__
 #define __HW1__PARSER__
-
 #include <string>
 #include <vector>
-
+#include <cmath> 
 namespace parser
 {
     //Notice that all the structures are as simple as possible
     //so that you are not enforced to adopt any style or design.
-    struct Vec3f
+    class Vec3f
     {
+        public:
+        Vec3f();
+        Vec3f( float x , float y , float z );
         float x, y, z;
     };
 
@@ -98,6 +100,13 @@ namespace parser
         //Functions
         void loadFromXml(const std::string &filepath);
     };
+
+    float dot( const Vec3f& vec1 , const Vec3f& vec2   );
+    Vec3f cross( const Vec3f& vec1 , const Vec3f & vec2 );
+    float length(const Vec3f & vec1 );
+    Vec3f normalize( const  Vec3f &  vec1 );
+
+    
 }
 
 #endif

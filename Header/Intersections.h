@@ -431,12 +431,12 @@ static bool calculate_second_hitpoint_in_same_object( parser::Scene & scene , co
     else if( object_id < scene.meshes.size() +  scene.spheres.size() )
     {
         if_sphere = true; 
-        sphere = scene.spheres[object_id - scene.meshes.size() + 1 ];
+        sphere = scene.spheres[object_id - scene.meshes.size() ];
     }
     else if( object_id < scene.meshes.size() +  scene.spheres.size() + scene.triangles.size() )
     {
         if_triangle = true; 
-        triangle = scene.triangles[object_id - scene.meshes.size() + 1  - scene.triangles.size() + 1 ];
+        triangle = scene.triangles[object_id - scene.meshes.size()   - scene.triangles.size()  ];
     }
     
     if( if_mesh )
