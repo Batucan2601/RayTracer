@@ -12,7 +12,7 @@
             <NearPlane> -1 1 -1 1</NearPlane>
             <NearDistance>10</NearDistance>
             <ImageResolution> 720 720 </ImageResolution>
-            <ImageName> spheres_mirror.bpp </ImageName>
+            <ImageName> spheres_mirror.png </ImageName>
         </Camera>
     </Cameras>
 

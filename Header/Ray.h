@@ -1,5 +1,4 @@
 #pragma once
-#include "../Dependencies/glm_headers/glm.hpp"
 #include "../System_Files/support_files/parser.h"
 struct Object
 {

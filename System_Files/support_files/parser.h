@@ -28,7 +28,6 @@ namespace parser
 
 
 
-
         //members
         float x, y, z;
     };
@@ -120,13 +119,23 @@ namespace parser
         void loadFromXml(const std::string &filepath);
     };
 
+
     float dot( const Vec3f& vec1 , const Vec3f& vec2   );
     Vec3f cross( const Vec3f& vec1 , const Vec3f & vec2 );
     float length(const Vec3f & vec1 );
     Vec3f normalize( const  Vec3f &  vec1 );
     float distance(const  Vec3f &  vec1 ,  const  Vec3f & vec2   );
 
-    
+    class Matrix
+    {
+        Matrix( int row , int col );
+        float at(int row_index ,int col_index );
+        void set(int row , int col , float num);
+        void Identity();
+        std::vector<float> elements;
+        int col_no; 
+        int row_no; 
+    }; 
 }
 
 #endif

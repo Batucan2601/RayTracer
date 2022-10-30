@@ -213,7 +213,10 @@ static parser::Vec3f color_pixel(parser::Scene& scene , Ray & ray )
         specular.y = std::min(255.0f , specular.y );
         specular.z = std::min(255.0f , specular.z );
         
+        if( !material.is_mirror)
+        {
         color =  color + diffuse  + specular  ;   
+        }
 
 
     }
@@ -251,8 +254,8 @@ static parser::Vec3f color_pixel(parser::Scene& scene , Ray & ray )
 
         // compute transmission ratio 
         float refraction_ratio = 1 - reflection_ratio; 
-        Ray reflection_ray( hit_point + Wr * 0.01f , hit_point + Wr  ); // real WR 
-        Ray refraction_ray( hit_point + wt * 0.01f , hit_point + wt ); //real Wt 
+        Ray reflection_ray( hit_point + Wr * 0.005f , hit_point + Wr  ); // real WR 
+        Ray refraction_ray( hit_point + wt * 0.005f , hit_point + wt ); //real Wt 
 
         parser::Vec3f reflection_color(0.0f , 0.0f , 0.0f );
         parser::Vec3f refraction_color(0.0f , 0.0f , 0.0f );
@@ -281,7 +284,7 @@ static parser::Vec3f color_pixel(parser::Scene& scene , Ray & ray )
                 float sine_phi  = n1/n2 *  sine_omega;
                 float cosine_phi = (1 -  (n1/n2) * (n1/n2) *(1 -  cosine_omega*cosine_omega) );
                 parser::Vec3f wt = ( W0 * -1.0f  + (second_normal * cosine_omega )  ) * ( n1 / n2) -  ( second_normal * cosine_phi ) ;
-                Ray out_ray( second_hit_point + (wt * ( 0.01f)) ,  second_hit_point + wt );
+                Ray out_ray( second_hit_point + (wt * ( 0.005f)) ,  second_hit_point + wt );
                 //std::cout << "hit point  " << hit_point.x << " " << hit_point.y << "  " << hit_point.z << std::endl;
                 //std::cout << "second hit point  " << second_hit_point.x << " " << second_hit_point.y  << " " << out_ray.origin.z << std::endl; 
                 if( cosine_phi  > 0 ) //  else abort the refraction ray 
@@ -316,7 +319,6 @@ static parser::Vec3f color_pixel(parser::Scene& scene , Ray & ray )
     }
     else if( material.is_conductor)
     {
-        
         //for wt however...
         // assume rfeeractive index of air is 1
         float k = material.absorption_index ; 
@@ -328,7 +330,7 @@ static parser::Vec3f color_pixel(parser::Scene& scene , Ray & ray )
         float sine_omega = std::sqrt(1 -  ( cosine_omega*cosine_omega) );
         float sine_phi = n1/n2 *  sine_omega;
         float cosine_phi = std::sqrt(1 -  ( sine_phi*sine_phi) );
-        parser::Vec3f wt = (ray.direction +  normal * cosine_omega  ) * ( n1 / n2) - normal * cosine_phi;
+        parser::Vec3f wt = (ray.direction +  normal * cosine_omega  ) * ( n1 / n2) -  ( normal * cosine_phi ) ;
         // compute reflection ratio
         float r_s  =  ( ( n2 * n2 + k * k ) - 2 * n2 * cosine_omega + (cosine_omega * cosine_omega ) )  / ( ( n2 * n2 + k * k ) + 2 * n2 * cosine_omega + (cosine_omega * cosine_omega ));  
         float r_p =   ( ( n2 * n2 + k * k ) * (cosine_omega * cosine_omega )  - 2 * n2 * cosine_omega + 1  ) / (( n2 * n2 + k * k ) * (cosine_omega * cosine_omega )  + 2 * n2 * cosine_omega + 1 );
@@ -338,12 +340,10 @@ static parser::Vec3f color_pixel(parser::Scene& scene , Ray & ray )
         if( max_recursion_depth > 0 )
         {
             max_recursion_depth -= 1; 
-            Ray reflection_ray( hit_point , hit_point + vr  );
-            parser::Vec3f iterated_hit_point =  hit_point + (normal * 0.1f); // iterate a little bit
+            Ray reflection_ray( hit_point +  ( vr * (0.01f) )  , hit_point + vr  );
             parser::Vec3f reflection_color =   color_pixel(scene ,reflection_ray) * reflection_ratio ;
             reflection_color = parser::Vec3f( reflection_color.x * material.mirror.x , reflection_color.y * material.mirror.y , reflection_color.z * material.mirror.z);
             color = color + reflection_color; 
-            
         }
        
 

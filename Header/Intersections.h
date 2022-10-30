@@ -451,7 +451,7 @@ static bool calculate_second_hitpoint_in_same_object( parser::Scene & scene , co
         bool is_intersection = calculate_intersection(scene, mesh , refracted_ray , second_normal , second_hit_point);
         if(!is_intersection)
         {
-            std::cout << " cannot found second hit_point in mesh" << std::endl;
+            //std::cout << " cannot found second hit_point in mesh" << std::endl;
             return false;
         }
         return true;  
@@ -462,7 +462,7 @@ static bool calculate_second_hitpoint_in_same_object( parser::Scene & scene , co
         bool is_intersection = calculate_intersection(scene, sphere , refracted_ray , second_normal , second_hit_point);
         if(!is_intersection)
         {
-            std::cout << " cannot found second hit_point in sphere" << std::endl;
+            //std::cout << " cannot found second hit_point in sphere" << std::endl;
             return false;
 
         }
@@ -473,7 +473,7 @@ static bool calculate_second_hitpoint_in_same_object( parser::Scene & scene , co
         bool is_intersection = calculate_intersection(scene, triangle , refracted_ray , second_normal , second_hit_point);
         if(!is_intersection)
         {
-            std::cout << " cannot found second hit_point in triangle" << std::endl;
+            //std::cout << " cannot found second hit_point in triangle" << std::endl;
             return false;
 
         }

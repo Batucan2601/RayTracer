@@ -1,7 +1,6 @@
 #pragma once
 #include "../System_Files/support_files/ppm.h"
 #include "../System_Files/support_files/parser.h"
-#include "../Dependencies/glm_headers/glm.hpp"
 static void generate_image(parser::Scene & scene);
 static void calculate_image_plane(const parser::Camera &current_camera , parser::Vec3f & starting_point,  parser::Vec3f & interwal_row, parser::Vec3f & interwal_col);
 static bool ray_plane_intersection(const Ray& ray , const parser::Vec3f & p1 , const parser::Vec3f & normal , parser::Vec3f & hitpoint  );

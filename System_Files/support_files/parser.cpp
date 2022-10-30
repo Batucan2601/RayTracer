@@ -476,3 +476,31 @@ void parser::Vec3f::operator =(const parser::Vec3f & vec1 )
     this->y = vec1.y;
     this->z = vec1.z;
 }
+
+//matrix
+parser::Matrix::Matrix(int row_no , int col_no )
+{
+    this->row_no = row_no;
+    this->col_no = col_no;
+
+    for (size_t i = 0; i < row_no * col_no; i++)
+    {
+        elements.push_back(0.0f);
+    }
+    
+}
+float parser::Matrix::at(int row_index , int col_index)
+{
+    return elements[ row_index * this->col_no  + col_index];
+}
+void parser::Matrix::Identity()
+{
+    for (size_t i = 0; i < row_no; i++)
+    {
+    }
+    
+}
+void parser::Matrix::set(int row , int col , float num )
+{
+    elements[ row * this->col_no  + col] = num; 
+}
