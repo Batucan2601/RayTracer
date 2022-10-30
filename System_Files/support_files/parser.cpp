@@ -217,6 +217,16 @@ void parser::Scene::loadFromXml(const std::string &filepath)
         {
             material.refraction_index =  0.0f; 
         }
+        child = element->FirstChildElement("AbsorptionIndex");
+        if( child != NULL)
+        {
+            stream << child->GetText() << std::endl;
+            stream >> material.absorption_index;
+        }
+        else
+        {
+            material.absorption_index = 0.0f;
+        }
         materials.push_back(material);
         element = element->NextSiblingElement("Material");
     }
@@ -315,10 +325,9 @@ parser::Vec3f parser::cross( const parser::Vec3f& vec1 , const parser::Vec3f & v
 {
     parser::Vec3f cross; 
     cross.x = (vec1.y * vec2.z) - (vec1.z * vec2.y);
-    cross.y = -1 * (vec1.x * vec2.z) - (vec1.z * vec2.x);
+    cross.y = -1 * ( (vec1.x * vec2.z) - (vec1.z * vec2.x) ) ;
     cross.z = (vec1.x * vec2.y) - (vec1.y * vec2.x);
-
-    return cross;
+    return parser::normalize(cross);
 }
 float parser::length(const parser::Vec3f & vec1 )
 {
@@ -328,6 +337,11 @@ parser::Vec3f parser::normalize( const  parser::Vec3f &  vec1 )
 {
     parser::Vec3f new_vec; 
     float len = length(vec1);
+    if( std::abs( len - 0.0f ) <  1e-4  )
+    {
+        new_vec = vec1;
+        return new_vec; 
+    }
     new_vec.x =  vec1.x / len;
     new_vec.y =  vec1.y / len;
     new_vec.z =  vec1.z / len;
@@ -357,35 +371,35 @@ parser::Vec3f::Vec3f()
 parser::Vec3f parser::Vec3f::operator +(const parser::Vec3f & vec1   )
 {
     parser::Vec3f vec;
-    vec.x = vec1.x + this->x; 
-    vec.y = vec1.y + this->y; 
-    vec.z = vec1.z + this->z; 
+    vec.x =  this->x +  vec1.x ; 
+    vec.y =  this->y +  vec1.y ; 
+    vec.z =  this->z +  vec1.z ; 
     return vec;
 }
 parser::Vec3f parser::Vec3f::operator -(const parser::Vec3f & vec1   )
 {
     parser::Vec3f vec;
-    vec.x = vec1.x - this->x; 
-    vec.y = vec1.y - this->y; 
-    vec.z = vec1.z - this->z;
+    vec.x =  this->x - vec1.x ; 
+    vec.y =  this->y - vec1.y ; 
+    vec.z =  this->z - vec1.z ;
     return vec;
 
 }
 parser::Vec3f parser::Vec3f::operator *(const parser::Vec3f & vec1   )
 {
     parser::Vec3f vec;
-    vec.x = vec1.x * this->x; 
-    vec.y = vec1.y * this->y; 
-    vec.z = vec1.z * this->z; 
+    vec.x = this->x * vec1.x ; 
+    vec.y = this->y * vec1.y ; 
+    vec.z = this->z * vec1.z ; 
     return vec;
 
 }
 parser::Vec3f parser::Vec3f::operator /(const parser::Vec3f & vec1   )
 {
     parser::Vec3f vec;
-    vec.x = vec1.x / this->x; 
-    vec.y = vec1.y / this->y; 
-    vec.z = vec1.z / this->z; 
+    vec.x = this->x / vec1.x  ; 
+    vec.y = this->y / vec1.y  ; 
+    vec.z = this->z / vec1.z  ; 
     return vec;
 
 }
@@ -393,73 +407,77 @@ parser::Vec3f parser::Vec3f::operator /(const parser::Vec3f & vec1   )
 parser::Vec3f parser::Vec3f::operator *(const int & num   )
 {
     parser::Vec3f vec;
-    vec.x = num * this->x; 
-    vec.y = num * this->y; 
-    vec.z = num * this->z; 
+    vec.x = this->x * num ; 
+    vec.y = this->y * num ; 
+    vec.z = this->z * num ; 
     return vec;
 
 }
 parser::Vec3f parser::Vec3f::operator /(const int & num   )
 {
     parser::Vec3f vec;
-    vec.x = num / this->x; 
-    vec.y = num / this->y; 
-    vec.z = num / this->z; 
+    vec.x = this->x / num; 
+    vec.y = this->y / num; 
+    vec.z = this->z / num; 
     return vec;
 
 }
 parser::Vec3f parser::Vec3f::operator +(const int & num   )
 {
     parser::Vec3f vec;
-    vec.x = num + this->x; 
-    vec.y = num + this->y; 
-    vec.z = num + this->z; 
+    vec.x =  this->x + num; 
+    vec.y =  this->y + num; 
+    vec.z =  this->z + num; 
     return vec;
 
 }
 parser::Vec3f parser::Vec3f::operator -(const int & num   )
 {
     parser::Vec3f vec;
-    vec.x = num - this->x; 
-    vec.y = num - this->y; 
-    vec.z = num - this->z; 
+    vec.x =  this->x - num ; 
+    vec.y =  this->y - num ; 
+    vec.z =  this->z - num ;
     return vec;
-
 }
 
 parser::Vec3f parser::Vec3f::operator *(const float & num   )
 {
     parser::Vec3f vec;
-    vec.x = num * this->x; 
-    vec.y = num * this->y; 
-    vec.z = num * this->z; 
+    vec.x =  this->x * num ; 
+    vec.y =  this->y * num ; 
+    vec.z =  this->z * num ; 
     return vec;
 
 }
 parser::Vec3f parser::Vec3f::operator /(const float & num   )
 {
     parser::Vec3f vec;
-    vec.x = num / this->x; 
-    vec.y = num / this->y; 
-    vec.z = num / this->z; 
+    vec.x = this->x / num; 
+    vec.y = this->y / num; 
+    vec.z = this->z / num; 
     return vec;
 
 }
 parser::Vec3f parser::Vec3f::operator +(const float & num   )
 {
     parser::Vec3f vec;
-    vec.x = num + this->x; 
-    vec.y = num + this->y; 
-    vec.z = num + this->z; 
+    vec.x = this->x  + num; 
+    vec.y = this->y  + num; 
+    vec.z = this->z  + num; 
     return vec;
 
 }
 parser::Vec3f parser::Vec3f::operator -(const float & num   )
 {
     parser::Vec3f vec;
-    vec.x = num - this->x; 
-    vec.y = num - this->y; 
-    vec.z = num - this->z; 
+    vec.x =  this->x - num; 
+    vec.y =  this->y - num; 
+    vec.z =  this->z - num; 
     return vec;
-
+}
+void parser::Vec3f::operator =(const parser::Vec3f & vec1 )
+{
+    this->x = vec1.x;
+    this->y = vec1.y;
+    this->z = vec1.z;
 }

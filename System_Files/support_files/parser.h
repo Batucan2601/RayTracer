@@ -16,6 +16,7 @@ namespace parser
         Vec3f operator -(const Vec3f & vec1   );
         Vec3f operator *(const Vec3f & vec1   );
         Vec3f operator /(const Vec3f & vec1   );
+        void operator =(const Vec3f & vec1 );
         Vec3f operator *(const int & num   );
         Vec3f operator +(const int & num   );
         Vec3f operator -(const int & num   );
@@ -71,6 +72,7 @@ namespace parser
         Vec3f absorptionCoefficient; 
         float phong_exponent;
         float refraction_index;
+        float absorption_index; 
     };
 
     struct Face

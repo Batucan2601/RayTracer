@@ -22,14 +22,8 @@ int main(int argc, char* argv[])
     std::cout << argv[1] << std::endl; 
     scene.loadFromXml(argv[1]); // load the scene
     std::cout << "loaded succesful y " << std::endl;
-    //generate_image(scene);
+    generate_image(scene);
     //Ray ray( glm::vec3( scene.cameras[0].position.x  , scene.cameras[0].position.y ,  scene.cameras[0].position.z)  , glm::vec3( scene.cameras[0].gaze.x , scene.cameras[0].gaze.y , scene.cameras[0].gaze.z ) );
-    parser::Vec3f vec1(1.0f , 2.0f , 3.0f  );
-    parser::Vec3f vec2( 2.0f ,1.0f, 3.0f  );
-    float  norm = parser::dot(vec1 , vec2 );
-    std::cout << norm <<  std::endl;
-    
-
 
     //glm::vec3 p1(0.0f , 0.0f , 0.0f );
     

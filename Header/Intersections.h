@@ -1,12 +1,9 @@
 #include "Renderer.h"
 #include <math.h>       /* isnan, std */
-// intersections and stuff 
-static bool ray_triangle_intersection( const Ray &ray , const parser::Scene& scene ,  parser::Vec3f intersection_point  )
-{
-     
-}
+
 static bool ray_plane_intersection(const Ray& ray , const parser::Vec3f & p1 ,  const parser::Vec3f & normal , parser::Vec3f & hitpoint  )
 {
+    
     float n_d = parser::dot(parser::normalize(normal) , parser::normalize(ray.direction ) );
     if( n_d < 1e-8 && n_d > -1e-8  ) //parallel dot 0 
     {
@@ -27,7 +24,7 @@ static bool ray_plane_intersection(const Ray& ray , const parser::Vec3f & p1 ,  
     #ifdef DEBUG
 
     //std::cout << hitpoint.x << " " << hitpoint.y << "  " << hitpoint.z << std::endl; 
-    /*if( isnan(hitpoint.x) ||isnan(hitpoint.y) || isnan(hitpoint.z) )
+    if( isnan(hitpoint.x) ||isnan(hitpoint.y) || isnan(hitpoint.z) )
     {
         std::cout << "ray origin " << std::endl;
         std::cout << ray.origin.x << " " << ray.origin.y << " "  << ray.origin.z << " " <<std::endl;  
@@ -37,12 +34,13 @@ static bool ray_plane_intersection(const Ray& ray , const parser::Vec3f & p1 ,  
         std::cout << t <<   " " << n_d <<   std::endl;
         std::cout << normal.x << " " << normal.y << " "  << normal.z << " " <<std::endl;  
 
-    } */
+    } 
     
 
     #endif
     if( t < 0 ) // line intersection not a ray 
     {
+
         return false; 
     }
 
@@ -81,6 +79,7 @@ static bool is_point_in_triangle(const parser::Vec3f & p1 ,const parser::Vec3f &
        return false; 
     }
     return true;*/
+    
     parser::Vec3f normal = parser::cross((parser::Vec3f)p2 - (parser::Vec3f)p1 , (parser::Vec3f)p3 - (parser::Vec3f)p1 );
     
     parser::Vec3f C1 = parser::cross( (parser::Vec3f)p2 - (parser::Vec3f)p1 , (parser::Vec3f)hitpoint - (parser::Vec3f)p1  );
@@ -92,11 +91,14 @@ static bool is_point_in_triangle(const parser::Vec3f & p1 ,const parser::Vec3f &
     parser::Vec3f C2 = parser::cross( (parser::Vec3f)p3 - (parser::Vec3f)p2 , (parser::Vec3f)hitpoint - (parser::Vec3f)p2  );
     if( parser::dot( C2 , normal) < -1e-3 )
     {
+
         return false;
     }
     parser::Vec3f C3 = parser::cross( (parser::Vec3f)p1 - (parser::Vec3f)p3 , (parser::Vec3f)hitpoint - (parser::Vec3f)p3  );
+    
     if( parser::dot( C3 , normal) < -1e-3 )
     {
+
         return false;
     }
     return true; 
@@ -112,7 +114,6 @@ static bool ray_triangle_intersection(const Ray& ray , const parser::Vec3f & p1 
     {
         return false; 
     }
-    //std::cout << " plane hit " << std::endl; 
     bool is_in_triangle = is_point_in_triangle( p1 ,p2 ,p3 , hitpoint);
 
     
@@ -140,6 +141,9 @@ static bool ray_sphere_intersection(const Ray& ray , const parser::Sphere& spher
 
         std::cout << " starrt " << std::endl; 
         std::cout << "center " << center.x << " " << center.y << " " << center.z << std::endl;
+        std::cout << "ray dir " << k.x << " " << k.y << " " << k.z  << std::endl;
+        std::cout << "ray origin " << O.x << " " << O.y << " " << O.z  << std::endl;
+        
         std::cout << "a " <<  a <<   " b "  << b  << " c " << c <<  std::endl; 
         return false;
     }
@@ -225,13 +229,13 @@ static bool calculate_intersection(parser::Scene& scene ,parser::Mesh& object ,c
         #ifdef DEBUG 
         if (isnan(normal.x) )
         {
+            std::cout << " ray dir " << ray.direction.x << " " << ray.direction.y << " " << ray.direction.z << std::endl; 
              //calculate normal
              std::cout << " new trianglee " << std::endl; 
             std::cout << p1.x << "  " << p1.y << " "  << p1.z << std::endl;
             std::cout << p2.x << "  " << p2.y << " "  << p2.z << std::endl;
             std::cout << p3.x << "  " << p3.y << " "  << p3.z << std::endl;
             std::cout << "indices " << std::endl; 
-            
         }
         #endif
         parser::Vec3f temp_intersection_point(0.0f , 0.0f , 0.f );
@@ -316,9 +320,11 @@ static bool ray_object_intersection( const Ray & ray , parser::Scene & scene , p
     int triangle_count = 0;  
     int sphere_count = 0;
     int object_id = 0; 
+
     while( true )
     {
-        // if all done 
+        // if all done s
+        
         if( mesh_count == scene.meshes.size() && sphere_count == scene.spheres.size() && triangle_count == scene.triangles.size() )
         {
             break; 
@@ -328,10 +334,11 @@ static bool ray_object_intersection( const Ray & ray , parser::Scene & scene , p
         bool is_interected_with_this_triangle = false; 
         bool is_intersected_with_this_object = false; 
         bool is_intersected_with_this_sphere = false; 
+
         while( mesh_count < scene.meshes.size())
         {
-            is_intersected_with_this_object = calculate_intersection(scene , scene.meshes[mesh_count] , ray , intersection_normal ,   intersection_point );
             object_id = mesh_count + sphere_count + triangle_count; // give every object unique id 
+            is_intersected_with_this_object = calculate_intersection(scene , scene.meshes[mesh_count] , ray , intersection_normal ,   intersection_point );
             if( is_intersected_with_this_object && object_id != prev_object_id ) // the second clause is for shadow rays in order not the intersect itself
             {
                 hit_points.push_back(intersection_point ); 
@@ -339,12 +346,11 @@ static bool ray_object_intersection( const Ray & ray , parser::Scene & scene , p
                 materials.push_back(scene.materials[scene.meshes[mesh_count].material_id - 1] );
                 object_id_list.push_back(object_id);
             }
-                mesh_count += 1; 
+            
+            mesh_count += 1; 
         }
-        
         while( sphere_count < scene.spheres.size())
         {
-
             is_intersected_with_this_sphere = calculate_intersection(scene , scene.spheres[sphere_count] ,  ray ,   intersection_normal , intersection_point );
             object_id = mesh_count + sphere_count + triangle_count; // give every object unique id 
             if( is_intersected_with_this_sphere && object_id != prev_object_id  ) // the second clause is for shadow rays in order not the intersect itself
@@ -356,8 +362,6 @@ static bool ray_object_intersection( const Ray & ray , parser::Scene & scene , p
                 
             }
             sphere_count += 1; 
-
-
         }
 
         while( triangle_count < scene.triangles.size() )
@@ -372,7 +376,6 @@ static bool ray_object_intersection( const Ray & ray , parser::Scene & scene , p
                 object_id_list.push_back(object_id);
 
             }
-            
             triangle_count += 1; 
         }
 
@@ -476,7 +479,7 @@ static bool calculate_second_hitpoint_in_same_object( parser::Scene & scene , co
     else
     {
         std::cout <<  " a problem  has occured " <<  std::endl; 
-        return true ;
+        return false ;
     }
 
 }
