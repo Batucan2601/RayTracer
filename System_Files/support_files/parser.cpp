@@ -131,13 +131,11 @@ void parser::Scene::loadFromXml(const std::string &filepath)
         child = element->FirstChildElement("AmbientReflectance");
         if( child != NULL)
         {
-            std::cout << " ambient ok " << std::endl; 
             stream << child->GetText() << std::endl;
             stream >> material.ambient.x >> material.ambient.y >> material.ambient.z;
         }
         else
         {
-            std::cout << " ambient not ok " << std::endl; 
 
             material.ambient.x = 0.0f; 
             material.ambient.y = 0.0f; 
@@ -192,7 +190,7 @@ void parser::Scene::loadFromXml(const std::string &filepath)
         }
         else
         {
-            material.phong_exponent = 0.0f; 
+            material.phong_exponent = 1.0f; 
         }
         child = element->FirstChildElement("AbsorptionCoefficient");
         if( child != NULL)
@@ -230,19 +228,16 @@ void parser::Scene::loadFromXml(const std::string &filepath)
         materials.push_back(material);
         element = element->NextSiblingElement("Material");
     }
-    std::cout << "4 " << std::endl;
 
     //Get VertexData
     element = root->FirstChildElement("VertexData");
     stream << element->GetText() << std::endl;
-    std::cout << element->GetText();
     Vec3f vertex;
     while (!(stream >> vertex.x).eof() )
     {
          
         stream >> vertex.y >> vertex.z;
         vertex_data.push_back(vertex);
-        std::cout << vertex.x << " " << vertex.y << " " << vertex.z  << std::endl;  
 
     }
 

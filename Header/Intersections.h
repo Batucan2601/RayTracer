@@ -1,3 +1,4 @@
+#pragma once
 #include "Renderer.h"
 #include <math.h>       /* isnan, std */
 
@@ -84,19 +85,19 @@ static bool is_point_in_triangle(const parser::Vec3f & p1 ,const parser::Vec3f &
     
     parser::Vec3f C1 = parser::cross( (parser::Vec3f)p2 - (parser::Vec3f)p1 , (parser::Vec3f)hitpoint - (parser::Vec3f)p1  );
     
-    if( parser::dot( C1 , normal) < -1e-3 )
+    if( parser::dot( C1 , normal) < 0 )
     {
         return false;
     }
     parser::Vec3f C2 = parser::cross( (parser::Vec3f)p3 - (parser::Vec3f)p2 , (parser::Vec3f)hitpoint - (parser::Vec3f)p2  );
-    if( parser::dot( C2 , normal) < -1e-3 )
+    if( parser::dot( C2 , normal) < 0 )
     {
 
         return false;
     }
     parser::Vec3f C3 = parser::cross( (parser::Vec3f)p1 - (parser::Vec3f)p3 , (parser::Vec3f)hitpoint - (parser::Vec3f)p3  );
     
-    if( parser::dot( C3 , normal) < -1e-3 )
+    if( parser::dot( C3 , normal) < 0 )
     {
 
         return false;
@@ -138,12 +139,10 @@ static bool ray_sphere_intersection(const Ray& ray , const parser::Sphere& spher
     #ifdef DEBUG 
     if( isnan(discriminant))
     {
-
         std::cout << " starrt " << std::endl; 
         std::cout << "center " << center.x << " " << center.y << " " << center.z << std::endl;
         std::cout << "ray dir " << k.x << " " << k.y << " " << k.z  << std::endl;
         std::cout << "ray origin " << O.x << " " << O.y << " " << O.z  << std::endl;
-        
         std::cout << "a " <<  a <<   " b "  << b  << " c " << c <<  std::endl; 
         return false;
     }
@@ -210,20 +209,19 @@ static bool ray_sphere_intersection(const Ray& ray , const parser::Sphere& spher
     return true; 
 
 }
-
-
 //a mesh intersection 
 static bool calculate_intersection(parser::Scene& scene ,parser::Mesh& object ,const Ray & ray , parser::Vec3f & intersection_normal ,  parser::Vec3f & intersection_point  )
 {
     std::vector<parser::Vec3f> hit_points; // there can be multiple hitpoints for an object 
     std::vector<parser::Vec3f> normals; 
+    std::vector<parser::Face> faces; 
+
     for (size_t i = 0; i < object.faces.size(); i++)
     {
         //get points
         parser::Vec3f p1 = parser::Vec3f( scene.vertex_data[ (object.faces[i].v0_id-1)    ].x , scene.vertex_data[ (object.faces[i].v0_id-1)    ].y , scene.vertex_data[ (object.faces[i].v0_id-1)  ].z); 
         parser::Vec3f p2 = parser::Vec3f( scene.vertex_data[ (object.faces[i].v1_id-1)   ].x , scene.vertex_data[ (object.faces[i].v1_id-1)  ].y , scene.vertex_data[ (object.faces[i].v1_id-1)   ].z);
         parser::Vec3f p3 = parser::Vec3f( scene.vertex_data[ (object.faces[i].v2_id-1)   ].x , scene.vertex_data[ (object.faces[i].v2_id-1)    ].y , scene.vertex_data[ (object.faces[i].v2_id-1)   ].z);
-       
 
         parser::Vec3f normal = parser::normalize(parser::cross((p2-p1) , (p3-p1)) );
         #ifdef DEBUG 
@@ -231,7 +229,7 @@ static bool calculate_intersection(parser::Scene& scene ,parser::Mesh& object ,c
         {
             std::cout << " ray dir " << ray.direction.x << " " << ray.direction.y << " " << ray.direction.z << std::endl; 
              //calculate normal
-             std::cout << " new trianglee " << std::endl; 
+            std::cout << " new trianglee " << std::endl; 
             std::cout << p1.x << "  " << p1.y << " "  << p1.z << std::endl;
             std::cout << p2.x << "  " << p2.y << " "  << p2.z << std::endl;
             std::cout << p3.x << "  " << p3.y << " "  << p3.z << std::endl;
@@ -241,8 +239,14 @@ static bool calculate_intersection(parser::Scene& scene ,parser::Mesh& object ,c
         parser::Vec3f temp_intersection_point(0.0f , 0.0f , 0.f );
         if( ray_triangle_intersection(ray , p1 , p2 , p3 , normal , temp_intersection_point) )
         {
+            /*std::cout << " P 1 " << p1.x << " " << p1.y << " " << p1.z << std::endl;
+            std::cout << " P 2 " << p2.x << " " << p2.y << " " << p2.z << std::endl;
+            std::cout << " P 3 " << p3.x << " " << p3.y << " " << p3.z << std::endl;*/
+
+
             hit_points.push_back(temp_intersection_point);
             normals.push_back(normal);
+            faces.push_back(object.faces[i]);
         }
     }
     if( hit_points.size() == 0 )
@@ -275,7 +279,6 @@ static bool calculate_intersection(parser::Scene& scene ,parser::Mesh& object ,c
     intersection_point = hit_points[smallest_index];
     intersection_normal = normals[smallest_index];
 
-    
     return true; 
         
     

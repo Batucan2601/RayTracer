@@ -1,4 +1,6 @@
 #pragma once
+#define STB_IMAGE_WRITE_IMPLEMENTATION // stb 
+#include "../System_Files/support_files/stb_image_write.h"
 #include "../System_Files/support_files/parser.h"
 #include "../Header/Prototypes.h"
 #include "../Header/Ray.h"
@@ -41,13 +43,11 @@ static void generate_image(parser::Scene & scene)
                 image[i++] = (unsigned char) (color.x);
                 image[i++] = (unsigned char) (color.y);
                 image[i++] = (unsigned char) (color.z);
-                
-            
             }
         }
 
         //save the written image
-        write_ppm( current_camera.image_name.c_str(), image, width, height);
+        stbi_write_png(current_camera.image_name.c_str() , width , height,3 , image , width * 3  );
         //in the end just reallocate the image
         delete[] image; 
     }
@@ -125,18 +125,6 @@ static void calculate_image_plane(const parser::Camera &current_camera , parser:
     interval_col.x = interval_col_parser.x;
     interval_col.y = interval_col_parser.y;
     interval_col.z = interval_col_parser.z;
-
-
-
-
-    //parser::Vec3f interval_col_parser  = (most_ - most_right) / current_camera.image_width;  
-
-
-
-
-
-
-
 }
 
 static parser::Vec3f color_pixel(parser::Scene& scene , Ray & ray )
@@ -162,6 +150,7 @@ static parser::Vec3f color_pixel(parser::Scene& scene , Ray & ray )
     {
         return parser::Vec3f(scene.background_color.x, scene.background_color.y , scene.background_color.z );
     }
+   
     //normalize normal 
     //now we got the  nearest hitpoint and normal of that hitpoint. we can calculate color and cast shadow rays
     
@@ -236,7 +225,7 @@ static parser::Vec3f color_pixel(parser::Scene& scene , Ray & ray )
             parser::Vec3f W0 = parser::Vec3f( ray.direction.x  * -1 , ray.direction.y  * -1 , ray.direction.z  * -1  ); 
             float cosine_omega  = parser::dot( W0 , normal ) / ( parser::length( normal ) * parser::length(W0));
             parser::Vec3f Wr = W0 * -1.0f +  normal * cosine_omega * 2.0f ;  
-            Ray recursion_ray( hit_point , Wr );
+            Ray recursion_ray( hit_point + Wr * 0.001f , hit_point + Wr );
             parser::Vec3f recursion_color = color_pixel(scene , recursion_ray );
             color =  color + parser::Vec3f( recursion_color.x  * material.mirror.x ,  recursion_color.y  * material.mirror.y  ,  recursion_color.z  * material.mirror.z ); 
         }
@@ -262,16 +251,14 @@ static parser::Vec3f color_pixel(parser::Scene& scene , Ray & ray )
 
         // compute transmission ratio 
         float refraction_ratio = 1 - reflection_ratio; 
-        Ray reflection_ray( hit_point + Wr * 0.1f , hit_point + Wr  ); // real WR 
-        parser::Vec3f iterated_hit_point =  hit_point +  (wt * 0.2f); // iterate a little bit
-        Ray refraction_ray( iterated_hit_point , iterated_hit_point + wt ); //real Wt 
+        Ray reflection_ray( hit_point + Wr * 0.01f , hit_point + Wr  ); // real WR 
+        Ray refraction_ray( hit_point + wt * 0.01f , hit_point + wt ); //real Wt 
 
         parser::Vec3f reflection_color(0.0f , 0.0f , 0.0f );
         parser::Vec3f refraction_color(0.0f , 0.0f , 0.0f );
         if( max_recursion_depth > 0 )
         {
             max_recursion_depth -= 1; 
-            
             //calculate second hit 
             parser::Vec3f second_hit_point(0.0f , 0.0f , 0.0f );
             parser::Vec3f second_normal(0.0f ,0.0f , 0.0f );
@@ -294,17 +281,16 @@ static parser::Vec3f color_pixel(parser::Scene& scene , Ray & ray )
                 float sine_phi  = n1/n2 *  sine_omega;
                 float cosine_phi = (1 -  (n1/n2) * (n1/n2) *(1 -  cosine_omega*cosine_omega) );
                 parser::Vec3f wt = ( W0 * -1.0f  + (second_normal * cosine_omega )  ) * ( n1 / n2) -  ( second_normal * cosine_phi ) ;
-                Ray out_ray( second_hit_point + (wt * ( 0.1f)) ,  second_hit_point + wt );
+                Ray out_ray( second_hit_point + (wt * ( 0.01f)) ,  second_hit_point + wt );
                 //std::cout << "hit point  " << hit_point.x << " " << hit_point.y << "  " << hit_point.z << std::endl;
                 //std::cout << "second hit point  " << second_hit_point.x << " " << second_hit_point.y  << " " << out_ray.origin.z << std::endl; 
-
                 if( cosine_phi  > 0 ) //  else abort the refraction ray 
                 {
                     cosine_phi = std::sqrt(cosine_phi);
-                    // attenuation 
-                    reflection_color =   color_pixel(scene ,reflection_ray) * reflection_ratio;
+                    reflection_color =   color_pixel(scene ,reflection_ray) * reflection_ratio * 0.1f;
                     refraction_color = color_pixel(scene , out_ray  ) * refraction_ratio; // L(0)
-                    //refraction_color = color_pixel(scene , refraction_ray  ) * refraction_ratio; // L(0)
+                    // attenuation 
+                
                     parser::Vec3f c  = parser::Vec3f( material.absorptionCoefficient.x ,  material.absorptionCoefficient.y  ,  material.absorptionCoefficient.z )  ;
                     float e = 2.7182818f;
                     refraction_color.x = refraction_color.x * powf32(e , -1 * c.x * distance  );
@@ -318,12 +304,14 @@ static parser::Vec3f color_pixel(parser::Scene& scene , Ray & ray )
                 }
 
             }
-           
-                //refraction_color =  color_pixel(scene ,refraction_ray) * refraction_ratio ;
-
+            else
+            {
+                    reflection_color =   color_pixel(scene ,reflection_ray) ;
+            }
+            //refraction_color =  color_pixel(scene ,refraction_ray) * refraction_ratio ;
         }
         
-        color = color +  reflection_color + refraction_color;
+        color = color  + refraction_color + reflection_color;
 
     }
     else if( material.is_conductor)
@@ -332,7 +320,6 @@ static parser::Vec3f color_pixel(parser::Scene& scene , Ray & ray )
         //for wt however...
         // assume rfeeractive index of air is 1
         float k = material.absorption_index ; 
-        std::cout << " k   " << k << std::endl; 
         float n1 = 1.0f; 
         float n2 = material.refraction_index;
         parser::Vec3f view_pos = parser::Vec3f( ray.direction.x  * -1 , ray.direction.y  * -1 , ray.direction.z  * -1  ); 
