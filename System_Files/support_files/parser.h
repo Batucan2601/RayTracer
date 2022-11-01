@@ -128,6 +128,7 @@ namespace parser
 
     class Matrix
     {
+        public:
         Matrix( int row , int col );
         float at(int row_index ,int col_index );
         void set(int row , int col , float num);
@@ -136,6 +137,8 @@ namespace parser
         int col_no; 
         int row_no; 
     }; 
+
+    void print_matrix(const Matrix & mat );
 }
 
 #endif

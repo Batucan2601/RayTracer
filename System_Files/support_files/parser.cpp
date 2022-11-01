@@ -495,12 +495,28 @@ float parser::Matrix::at(int row_index , int col_index)
 }
 void parser::Matrix::Identity()
 {
+    parser::Matrix mat(this->row_no , this->col_no);
+    this->elements = mat.elements; 
     for (size_t i = 0; i < row_no; i++)
     {
+        this->elements[i * col_no + i ] = 1.0f; 
     }
-    
 }
 void parser::Matrix::set(int row , int col , float num )
 {
     elements[ row * this->col_no  + col] = num; 
+}
+
+void parser::print_matrix(const parser::Matrix & mat )
+{
+    for (size_t i = 0; i < mat.row_no; i++)
+    {
+        for (size_t j = 0; j < mat.col_no; j++)
+        {
+           std::cout << mat.elements[i * mat.col_no + j] << " ";
+        }
+        std::cout<<"\n";
+        
+    }
+    
 }
