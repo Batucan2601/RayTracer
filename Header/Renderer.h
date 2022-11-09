@@ -4,7 +4,7 @@
 #include "../System_Files/support_files/parser.h"
 #include "../Header/Prototypes.h"
 #include "../Header/Ray.h"
-#include "../Header/Helper.h"
+#include "../Header/BVH.h"
 // the basic ray tracing block 
 int max_recursion_depth; 
 static void generate_image(parser::Scene & scene)
@@ -26,9 +26,9 @@ static void generate_image(parser::Scene & scene)
         calculate_image_plane(current_camera , starting_point , interval_row , interval_col );
         //we now have a startin point
         parser::Vec3f starting_point_parser = parser::Vec3f( starting_point.x , starting_point.y , starting_point.z );  
-        std::cout << "starting point " <<  starting_point_parser.x << " " << starting_point_parser.y  << starting_point_parser.z << std::endl; 
-        std::cout << "starting point " <<  interval_row.x << " " << interval_row.y  << interval_row.z << std::endl; 
-        std::cout << "starting point " <<  interval_col.x << " " << interval_col.y  << interval_col.z << std::endl; 
+        //std::cout << "starting point " <<  starting_point_parser.x << " " << starting_point_parser.y  << starting_point_parser.z << std::endl; 
+        //std::cout << "starting point " <<  interval_row.x << " " << interval_row.y  << interval_row.z << std::endl; 
+        //std::cout << "starting point " <<  interval_col.x << " " << interval_col.y  << interval_col.z << std::endl; 
         for (size_t y = 0; y < height; y++)
         {
             for (size_t x = 0; x < width; x++)
@@ -145,12 +145,10 @@ static parser::Vec3f color_pixel(parser::Scene& scene , Ray & ray )
     bool is_shadow_rays_active = false;
     int object_id = -1; 
     bool  is_object_hit = ray_object_intersection( ray , scene ,  hit_point , normal  , material   , object_id ,  is_shadow_rays_active);
-    
     if( !is_object_hit)
     {
         return parser::Vec3f(scene.background_color.x, scene.background_color.y , scene.background_color.z );
     }
-   
     //normalize normal 
     //now we got the  nearest hitpoint and normal of that hitpoint. we can calculate color and cast shadow rays
     

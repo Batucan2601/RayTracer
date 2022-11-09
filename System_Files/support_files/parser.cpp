@@ -4,6 +4,7 @@
 #include <sstream>
 #include <stdexcept>
 #include <iostream>
+#include "../support_files/happly.h"
 void parser::Scene::loadFromXml(const std::string &filepath)
 {
     tinyxml2::XMLDocument file;
@@ -228,7 +229,134 @@ void parser::Scene::loadFromXml(const std::string &filepath)
         materials.push_back(material);
         element = element->NextSiblingElement("Material");
     }
+    //Get transformations
+    element = root->FirstChildElement("Transformations");
+    //Get Scaling
+    element = element->FirstChildElement("Scaling");
+    while( element)
+    {
+        
 
+        stream << element->GetText() << std::endl;
+        std::cout << "element get text " <<  element->GetText() << std::endl;
+        Matrix s(4,4);
+        Vec3f vertex;
+        while (!(stream >> vertex.x).eof() )
+        {
+            stream >> vertex.y >> vertex.z;
+        }
+        std::cout << " vertex " << vertex.x << " " << vertex.y << " " << vertex.z    << std::endl;
+
+        //scale matrix
+        s.set(0, 0 , vertex.x );
+        s.set(1, 1 , vertex.y );  
+        s.set(2, 2 , vertex.z );  
+        s.set(3, 3 , 1 );  
+        transformations.scaling.push_back(s);
+
+        element = element->NextSiblingElement("Scaling");
+        stream.clear();
+
+        if( element == 0 )
+        {
+            break;
+        }
+        
+    }
+    std::cout << " scaling done " << std::endl;
+    stream.clear();
+    //Get Translation
+    element = root->FirstChildElement("Transformations");
+    element = element->FirstChildElement("Translation");
+    while( element)
+    {
+        stream << element->GetText() << std::endl;
+        Matrix s(4,4);
+        Vec3f vertex;
+        while (!(stream >> vertex.x).eof() )
+        {
+            stream >> vertex.y >> vertex.z;
+        }
+        //translation matrix
+        s.set(0, 0 , 1 );
+        s.set(1, 1 , 1 );  
+        s.set(2, 2 , 1 );  
+        s.set(3, 3 , 1 );
+
+        s.set(0, 3 , vertex.x );
+        s.set(1, 3 , vertex.y );
+        s.set(2, 3 , vertex.z );
+        s.set(3, 3 , 1 );
+
+        transformations.translation.push_back(s);
+        element = element->NextSiblingElement("Translation");
+        stream.clear();
+        if( element == 0 )
+        {
+            break;
+        }
+        
+    }
+    std::cout << " translation  done " << std::endl;
+
+    stream.clear();
+    //Get Translation
+    element = root->FirstChildElement("Transformations");
+    element = element->FirstChildElement("Rotation");
+    while( element)
+    {
+        stream << element->GetText() << std::endl;
+        Matrix s(4,4);
+        Vec4f vertex;
+        while (!(stream >> vertex.x).eof() )
+        {
+            stream >> vertex.y >> vertex.z >> vertex.w;
+        }
+
+        float degree = vertex.x;
+        float Rx = vertex.y;
+        float Ry = vertex.z;
+        float Rz = vertex.w;
+
+        float cosine_theta = std::cos(M_PI/180  * degree );
+        float sine_theta = std::sin(M_PI/180  * degree );
+
+        //rotation matrix 
+        //  x is degree 
+        // y z w arbitrary axis
+        s.set(0, 0 , cosine_theta + Rx * Rx * (1 - cosine_theta )  );
+        s.set(0, 1 , Rx * Ry * (1 - cosine_theta ) - Rz * sine_theta  );  
+        s.set(0, 2 , Rx * Rz * (1 -cosine_theta ) + Ry *sine_theta );  
+        s.set(0, 3 , 0 );
+
+        s.set(1, 0 , Ry*Rx*(1-cosine_theta) + Rz*sine_theta);
+        s.set(1, 1 , cosine_theta + Ry*Ry*(1-cosine_theta) );
+        s.set(1, 2 , Ry*Rz*(1-cosine_theta)-Rx*sine_theta );
+        s.set(1, 3 , 0 );
+
+        s.set(2, 0 , Ry*Rx*(1-cosine_theta) - Ry*sine_theta);
+        s.set(2, 1 ,Rz*Ry*(1-cosine_theta) + Rx*sine_theta );
+        s.set(2, 2 , cosine_theta + Rz*Rz*(1-cosine_theta) );
+        s.set(2, 3 , 0 );
+
+        s.set(3,0,0);
+        s.set(3,1,0);
+        s.set(3,2,0);
+        s.set(3,3,1);
+
+
+        transformations.rotation.push_back(s);
+        element = element->NextSiblingElement("Rotation");
+        stream.clear();
+        if( element == 0 )
+        {
+            break;
+        }
+        
+    }
+    std::cout << " rotation  done " << std::endl;
+
+    stream.clear();
     //Get VertexData
     element = root->FirstChildElement("VertexData");
     stream << element->GetText() << std::endl;
@@ -240,43 +368,170 @@ void parser::Scene::loadFromXml(const std::string &filepath)
         vertex_data.push_back(vertex);
 
     }
+    std::cout << " vertex data   done " << std::endl;
+        std::cout << " here 0 " << std::endl;
 
     stream.clear();
 
     //Get Meshes
     element = root->FirstChildElement("Objects");
     element = element->FirstChildElement("Mesh");
-    Mesh mesh;
     while (element)
     {
+        Mesh mesh;
         child = element->FirstChildElement("Material");
         stream << child->GetText() << std::endl;
         stream >> mesh.material_id;
 
         child = element->FirstChildElement("Faces");
-        stream << child->GetText() << std::endl;
-        Face face;
-        while (!(stream >> face.v0_id).eof())
-        {
-            stream >> face.v1_id >> face.v2_id;
-            mesh.faces.push_back(face);
-        }
-        stream.clear();
 
+        //chekc for ply
+        const char* ply_path = child->Attribute("plyFile"); 
+
+        if(ply_path == 0 ) // no ply
+        {
+            stream << child->GetText() << std::endl;
+            Face face;
+            while (!(stream >> face.v0_id).eof())
+            {
+                stream >> face.v1_id >> face.v2_id;
+                mesh.faces.push_back(face);
+            }
+        }        
+        else //ply file 
+        {
+            happly::PLYData plyIn(ply_path);
+            std::vector<std::array<double , 3U > > vertex_pos = plyIn.getVertexPositions();
+		    std::vector<std::vector<size_t>> face_indices=  plyIn.getFaceIndices();
+            int vertex_data_initial_size = vertex_data.size();
+            
+            for (size_t i = 0; i < vertex_pos.size(); i++)
+            {
+                //add them to vertex_data
+                Vec3f point;
+                point.x = (float)vertex_pos[i][0];
+                point.y = (float)vertex_pos[i][1];
+                point.z = (float)vertex_pos[i][2];
+
+                vertex_data.push_back( point );
+            }
+
+            //now increase all of the face indicies by vertex_data_initial_size
+            for (size_t i = 0; i < face_indices.size(); i++)
+            {
+                Face face;
+                face.v0_id = face_indices[i][0] +  vertex_data_initial_size;
+                face.v1_id = face_indices[i][1] + vertex_data_initial_size ;
+                face.v2_id = face_indices[i][2] + vertex_data_initial_size;
+                mesh.faces.push_back(face );
+            }
+            
+            
+        }
+        child = element->FirstChildElement("Transformations");
+        if( child != NULL )
+        {
+            stream << child->GetText() << std::endl;
+            std::istringstream iss(child->GetText());
+            std::string trans = child->GetText();
+            while(std::getline(iss , trans , ' '))
+            {
+                char first = trans.at(0);
+                std::cout << "substr ==>  " << trans << " " << trans.substr(0,trans.length()) << std::endl; 
+                int no =  std::stoi(trans.substr(1, trans.length()) ) ;
+                if( first == 't') //translate 
+                {
+                    Matrix m = transformations.translation[no-1];
+                    mesh.transformations.push_back(m);
+                }
+                else if(first == 's') //sclae 
+                {
+                    Matrix m = transformations.scaling[no-1];
+                    mesh.transformations.push_back(m);
+                }
+                else if( first == 'r') //rotate 
+                {
+                    Matrix m = transformations.rotation[no-1];
+                    mesh.transformations.push_back(m);
+                }
+            }
+            stream.clear();
+        }
         meshes.push_back(mesh);
         mesh.faces.clear();
         element = element->NextSiblingElement("Mesh");
     }
-    std::cout << "6 " << std::endl;  
-
+    std::cout << "reading meshes done  " << std::endl;  
     stream.clear();
+
+
+    //Get Mesh Instances
+    element = root->FirstChildElement("Objects");
+    element = element->FirstChildElement("MeshInstance");
+    while (element)
+    {
+        MeshInstance mesh_instance;
+        std::string base_mesh = element->Attribute("baseMeshId");
+        mesh_instance.mesh_ptr = &this->meshes[std::stoi(base_mesh) - 1 ];
+        std::cout << "base mesh id " << base_mesh << std::endl; 
+        std::string reset_transform = element->Attribute("resetTransform");
+        std::cout << "reset transfomr  " << reset_transform << std::endl; 
+        
+        if( reset_transform.at(0) == 'f')
+        {
+            //means false
+            mesh_instance.reset_transform = false; 
+        }
+        else
+        {
+            mesh_instance.reset_transform = true; 
+        }
+
+        child = element->FirstChildElement("Material");
+        stream << child->GetText() << std::endl;
+        stream >> mesh_instance.material_id;
+
+
+        child = element->FirstChildElement("Transformations");
+        if( child != NULL )
+        {
+            stream << child->GetText() << std::endl;
+            std::istringstream iss(child->GetText());
+            std::string trans = child->GetText();
+            while(std::getline(iss , trans , ' '))
+            {
+                char first = trans.at(0);
+                std::cout << "substr ==>  " << trans << " " << trans.substr(0,trans.length()) << std::endl; 
+                int no =  std::stoi(trans.substr(1, trans.length()) ) ;
+                if( first == 't') //translate 
+                {
+                    Matrix m = transformations.translation[no-1];
+                    mesh_instance.transformations.push_back(m);
+                }
+                else if(first == 's') //sclae 
+                {
+                    Matrix m = transformations.scaling[no-1];
+                    mesh_instance.transformations.push_back(m);
+                }
+                else if( first == 'r') //rotate 
+                {
+                    Matrix m = transformations.rotation[no-1];
+                    mesh_instance.transformations.push_back(m);
+                }
+            }
+            stream.clear();
+        }
+        mesh_instances.push_back(mesh_instance);
+        element = element->NextSiblingElement("MeshInstance");
+    }
+    std::cout << " mesh instances " << std::endl;
 
     //Get Triangles
     element = root->FirstChildElement("Objects");
     element = element->FirstChildElement("Triangle");
-    Triangle triangle;
     while (element)
     {
+        Triangle triangle;
         child = element->FirstChildElement("Material");
         stream << child->GetText() << std::endl;
         stream >> triangle.material_id;
@@ -284,31 +539,95 @@ void parser::Scene::loadFromXml(const std::string &filepath)
         child = element->FirstChildElement("Indices");
         stream << child->GetText() << std::endl;
         stream >> triangle.indices.v0_id >> triangle.indices.v1_id >> triangle.indices.v2_id;
-
+        child = element->FirstChildElement("Transformations");
+        if( child != NULL )
+        {
+            stream << child->GetText() << std::endl;
+            std::istringstream iss(child->GetText());
+            std::string trans = child->GetText();
+            while(std::getline(iss , trans , ' '))
+            {
+                char first = trans.at(0);
+                int no =  std::stoi(trans.substr(1, trans.length()) ) ;
+                if( first == 't') //translate 
+                {
+                    Matrix m = transformations.translation[no-1];
+                    triangle.transformations.push_back(m);
+                }
+                else if(first == 's') //sclae 
+                {
+                    Matrix m = transformations.scaling[no-1];
+                    triangle.transformations.push_back(m);
+                }
+                else if( first == 'r') //rotate 
+                {
+                    Matrix m = transformations.rotation[no-1];
+                    triangle.transformations.push_back(m);
+                }
+            }
+        }
+        stream.clear();
         triangles.push_back(triangle);
         element = element->NextSiblingElement("Triangle");
     }
+    std::cout << "reading triangles done  " << std::endl;  
+
     //Get Spheres
     element = root->FirstChildElement("Objects");
     element = element->FirstChildElement("Sphere");
-    Sphere sphere;
     while (element)
     {
+        Sphere sphere;
         child = element->FirstChildElement("Material");
         stream << child->GetText() << std::endl;
-        stream >> sphere.material_id;
+        sphere.material_id = std::stoi(child->GetText());
+        std::cout << sphere.material_id << std::endl; 
 
         child = element->FirstChildElement("Center");
         stream << child->GetText() << std::endl;
-        stream >> sphere.center_vertex_id;
+        sphere.center_vertex_id = std::stoi(child->GetText());
 
         child = element->FirstChildElement("Radius");
         stream << child->GetText() << std::endl;
         stream >> sphere.radius;
+        sphere.radius = std::stof(child->GetText());
 
+        stream.clear();
+        child = element->FirstChildElement("Transformations");
+        if( child != NULL )
+        {
+            stream << child->GetText() << std::endl;
+            std::istringstream iss(child->GetText());
+            std::string trans = child->GetText();
+            while(std::getline(iss , trans , ' '))
+            {
+                char first = trans.at(0);
+                int no =  std::stoi(trans.substr(1, trans.length()) ) ;
+                if( first == 't') //translate 
+                {
+                    Matrix m = transformations.translation[no-1];
+                    sphere.transformations.push_back(m);
+                }
+                else if(first == 's') //scale 
+                {
+                    Matrix m = transformations.scaling[no-1];
+                    sphere.transformations.push_back(m);
+                    sphere.scale_index = sphere.transformations.size() -1;;
+                }
+                else if( first == 'r') //rotate 
+                {
+                    Matrix m = transformations.rotation[no-1];
+                    sphere.transformations.push_back(m);
+                }
+            }
+        }
+        stream.clear();
+        
         spheres.push_back(sphere);
         element = element->NextSiblingElement("Sphere");
     }
+    std::cout << "reading spheres done  " << std::endl;  
+
 }
 // geometry functions
 float parser::dot( const Vec3f& vec1 , const Vec3f& vec2   )
@@ -518,5 +837,43 @@ void parser::print_matrix(const parser::Matrix & mat )
         std::cout<<"\n";
         
     }
+    
+}
+parser::Vec4f parser::Matrix::operator *(const parser::Vec4f & vec1   ) // 4x4 matrix vs 4x1 vector 
+{
+    parser::Vec4f new_vec;
+    new_vec.x = this->at(0,0) * vec1.x + this->at(0,1) * vec1.y + this->at(0,2) * vec1.z +this->at(0,3) * vec1.w; 
+    new_vec.y = this->at(1,0) * vec1.x + this->at(1,1) * vec1.y + this->at(1,2) * vec1.z +this->at(1,3) * vec1.w; 
+    new_vec.z = this->at(2,0) * vec1.x + this->at(2,1) * vec1.y + this->at(2,2) * vec1.z +this->at(2,3) * vec1.w;
+    new_vec.w = this->at(3,0) * vec1.x + this->at(3,1) * vec1.y + this->at(3,2) * vec1.z +this->at(3,3) * vec1.w ;
+
+    return new_vec;
+}
+
+parser::Matrix parser::Matrix::operator*( parser::Matrix & matrix   ) // 4x4 matrix vs 4x4 vector 
+{
+    parser::Matrix mat(4,4 );
+
+    mat.set(0 , 0 , this->at( 0,0 ) * matrix.at(0,0) + this->at( 0,1 ) * matrix.at(1,0) + this->at( 0,2 ) * matrix.at(2,0) + this->at( 0,3 ) * matrix.at(3,0)  );
+    mat.set(0 , 1 , this->at( 0,0 ) * matrix.at(0,1) + this->at( 0,1 ) * matrix.at(1,1) + this->at( 0,2 ) * matrix.at(2,1) + this->at( 0,3 ) * matrix.at(3,1)  );
+    mat.set(0 , 2 , this->at( 0,0 ) * matrix.at(0,2) + this->at( 0,1 ) * matrix.at(1,2) + this->at( 0,2 ) * matrix.at(2,2) + this->at( 0,3 ) * matrix.at(3,2)  );
+    mat.set(0 , 3 , this->at( 0,0 ) * matrix.at(0,3) + this->at( 0,1 ) * matrix.at(1,3) + this->at( 0,2 ) * matrix.at(2,3) + this->at( 0,3 ) * matrix.at(3,3)  );
+
+    mat.set(1 , 0 , this->at( 1,0 ) * matrix.at(0,0) + this->at( 1,1 ) * matrix.at(1,0) + this->at( 1,2 ) * matrix.at(2,0) + this->at( 1,3 ) * matrix.at(3,0)  );
+    mat.set(1 , 1 , this->at( 1,0 ) * matrix.at(0,1) + this->at( 1,1 ) * matrix.at(1,1) + this->at( 1,2 ) * matrix.at(2,1) + this->at( 1,3 ) * matrix.at(3,1)  );
+    mat.set(1 , 2 , this->at( 1,0 ) * matrix.at(0,2) + this->at( 1,1 ) * matrix.at(1,2) + this->at( 1,2 ) * matrix.at(2,2) + this->at( 1,3 ) * matrix.at(3,2)  );
+    mat.set(1 , 3 , this->at( 1,0 ) * matrix.at(0,3) + this->at( 1,1 ) * matrix.at(1,3) + this->at( 1,2 ) * matrix.at(2,3) + this->at( 1,3 ) * matrix.at(3,3)  );
+
+    mat.set(2 , 0 , this->at( 2,0 ) * matrix.at(0,0) + this->at( 2,1 ) * matrix.at(1,0) + this->at( 2,2 ) * matrix.at(2,0) + this->at( 2,3 ) * matrix.at(3,0)  );
+    mat.set(2 , 1 , this->at( 2,0 ) * matrix.at(0,1) + this->at( 2,1 ) * matrix.at(1,1) + this->at( 2,2 ) * matrix.at(2,1) + this->at( 2,3 ) * matrix.at(3,1)  );
+    mat.set(2 , 2 , this->at( 2,0 ) * matrix.at(0,2) + this->at( 2,1 ) * matrix.at(1,2) + this->at( 2,2 ) * matrix.at(2,2) + this->at( 2,3 ) * matrix.at(3,2)  );
+    mat.set(2 , 3 , this->at( 2,0 ) * matrix.at(0,3) + this->at( 2,1 ) * matrix.at(1,3) + this->at( 2,2 ) * matrix.at(2,3) + this->at( 2,3 ) * matrix.at(3,3)  );
+
+    mat.set(2 , 0 , this->at( 3,0 ) * matrix.at(0,0) + this->at( 3,1 ) * matrix.at(1,0) + this->at( 3,2 ) * matrix.at(2,0) + this->at( 3,3 ) * matrix.at(3,0)  );
+    mat.set(2 , 1 , this->at( 3,0 ) * matrix.at(0,1) + this->at( 3,1 ) * matrix.at(1,1) + this->at( 3,2 ) * matrix.at(2,1) + this->at( 3,3 ) * matrix.at(3,1)  );
+    mat.set(2 , 2 , this->at( 3,0 ) * matrix.at(0,2) + this->at( 3,1 ) * matrix.at(1,2) + this->at( 3,2 ) * matrix.at(2,2) + this->at( 3,3 ) * matrix.at(3,2)  );
+    mat.set(2 , 3 , this->at( 3,0 ) * matrix.at(0,3) + this->at( 3,1 ) * matrix.at(1,3) + this->at( 3,2 ) * matrix.at(2,3) + this->at( 3,3 ) * matrix.at(3,3)  );
+
+    return mat; 
     
 }

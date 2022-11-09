@@ -121,72 +121,72 @@
             <Objects>
                 <Mesh id="1" shadingMode="smooth">
                     <Material>13</Material>
-                    <Faces plyFile="../windmill_smooth_ply_ply/mesh_1.ply" /></Mesh>
+                    <Faces plyFile="/home/batu/Desktop/RayTracer/RayTracer/System_Files/hw2/inputs/akif_uslu/windmill/windmill_smooth_ply_ply/mesh_1.ply" /></Mesh>
                 <Mesh id="2" shadingMode="smooth">
                     <Material>8</Material>
-                    <Faces plyFile="../windmill_smooth_ply_ply/mesh_2.ply" /></Mesh>
+                    <Faces plyFile="/home/batu/Desktop/RayTracer/RayTracer/System_Files/hw2/inputs/akif_uslu/windmill/windmill_smooth_ply_ply/mesh_2.ply" /></Mesh>
                 <Mesh id="3" shadingMode="smooth">
                     <Material>8</Material>
-                    <Faces plyFile="../windmill_smooth_ply_ply/mesh_3.ply" /></Mesh>
+                    <Faces plyFile="/home/batu/Desktop/RayTracer/RayTracer/System_Files/hw2/inputs/akif_uslu/windmill/windmill_smooth_ply_ply/mesh_3.ply" /></Mesh>
                 <Mesh id="4" shadingMode="smooth">
                     <Material>6</Material>
-                    <Faces plyFile="../windmill_smooth_ply_ply/mesh_4.ply" /></Mesh>
+                    <Faces plyFile="/home/batu/Desktop/RayTracer/RayTracer/System_Files/hw2/inputs/akif_uslu/windmill/windmill_smooth_ply_ply/mesh_4.ply" /></Mesh>
                 <Mesh id="5" shadingMode="smooth">
                     <Material>7</Material>
                     <Transformations>t1 r1 t2</Transformations>
-                    <Faces plyFile="../windmill_smooth_ply_ply/mesh_5.ply" /></Mesh>
+                    <Faces plyFile="/home/batu/Desktop/RayTracer/RayTracer/System_Files/hw2/inputs/akif_uslu/windmill/windmill_smooth_ply_ply/mesh_5.ply" /></Mesh>
                 <Mesh id="6" shadingMode="smooth">
                     <Material>11</Material>
-                    <Faces plyFile="../windmill_smooth_ply_ply/mesh_6.ply" /></Mesh>
+                    <Faces plyFile="/home/batu/Desktop/RayTracer/RayTracer/System_Files/hw2/inputs/akif_uslu/windmill/windmill_smooth_ply_ply/mesh_6.ply" /></Mesh>
                 <Mesh id="7" shadingMode="smooth">
                     <Material>11</Material>
-                    <Faces plyFile="../windmill_smooth_ply_ply/mesh_7.ply" /></Mesh>
+                    <Faces plyFile="/home/batu/Desktop/RayTracer/RayTracer/System_Files/hw2/inputs/akif_uslu/windmill/windmill_smooth_ply_ply/mesh_7.ply" /></Mesh>
                 <Mesh id="8" shadingMode="smooth">
                     <Material>1</Material>
-                    <Faces plyFile="../windmill_smooth_ply_ply/mesh_8.ply" /></Mesh>
+                    <Faces plyFile="/home/batu/Desktop/RayTracer/RayTracer/System_Files/hw2/inputs/akif_uslu/windmill/windmill_smooth_ply_ply/mesh_8.ply" /></Mesh>
                 <Mesh id="9" shadingMode="smooth">
                     <Material>1</Material>
-                    <Faces plyFile="../windmill_smooth_ply_ply/mesh_9.ply" /></Mesh>
+                    <Faces plyFile="/home/batu/Desktop/RayTracer/RayTracer/System_Files/hw2/inputs/akif_uslu/windmill/windmill_smooth_ply_ply/mesh_9.ply" /></Mesh>
                 <Mesh id="10" shadingMode="smooth">
                     <Material>1</Material>
-                    <Faces plyFile="../windmill_smooth_ply_ply/mesh_10.ply" /></Mesh>
+                    <Faces plyFile="/home/batu/Desktop/RayTracer/RayTracer/System_Files/hw2/inputs/akif_uslu/windmill/windmill_smooth_ply_ply/mesh_10.ply" /></Mesh>
                 <Mesh id="11" shadingMode="smooth">
                     <Material>1</Material>
-                    <Faces plyFile="../windmill_smooth_ply_ply/mesh_11.ply" /></Mesh>
+                    <Faces plyFile="/home/batu/Desktop/RayTracer/RayTracer/System_Files/hw2/inputs/akif_uslu/windmill/windmill_smooth_ply_ply/mesh_11.ply" /></Mesh>
                 <Mesh id="12" shadingMode="smooth">
                     <Material>1</Material>
-                    <Faces plyFile="../windmill_smooth_ply_ply/mesh_12.ply" /></Mesh>
+                    <Faces plyFile="/home/batu/Desktop/RayTracer/RayTracer/System_Files/hw2/inputs/akif_uslu/windmill/windmill_smooth_ply_ply/mesh_12.ply" /></Mesh>
                 <Mesh id="13" shadingMode="smooth">
                     <Material>1</Material>
-                    <Faces plyFile="../windmill_smooth_ply_ply/mesh_13.ply" /></Mesh>
+                    <Faces plyFile="/home/batu/Desktop/RayTracer/RayTracer/System_Files/hw2/inputs/akif_uslu/windmill/windmill_smooth_ply_ply/mesh_13.ply" /></Mesh>
                 <Mesh id="14" shadingMode="smooth">
                     <Material>1</Material>
-                    <Faces plyFile="../windmill_smooth_ply_ply/mesh_14.ply" /></Mesh>
+                    <Faces plyFile="/home/batu/Desktop/RayTracer/RayTracer/System_Files/hw2/inputs/akif_uslu/windmill/windmill_smooth_ply_ply/mesh_14.ply" /></Mesh>
                 <Mesh id="15" shadingMode="smooth">
                     <Material>2</Material>
-                    <Faces plyFile="../windmill_smooth_ply_ply/mesh_15.ply" /></Mesh>
+                    <Faces plyFile="/home/batu/Desktop/RayTracer/RayTracer/System_Files/hw2/inputs/akif_uslu/windmill/windmill_smooth_ply_ply/mesh_15.ply" /></Mesh>
                 <Mesh id="16" shadingMode="smooth">
                     <Material>12</Material>
                     <Transformations>t1 r1 t2</Transformations>
-                    <Faces plyFile="../windmill_smooth_ply_ply/mesh_16.ply" /></Mesh>
+                    <Faces plyFile="/home/batu/Desktop/RayTracer/RayTracer/System_Files/hw2/inputs/akif_uslu/windmill/windmill_smooth_ply_ply/mesh_16.ply" /></Mesh>
                 <Mesh id="17" shadingMode="smooth">
                     <Material>9</Material>
-                    <Faces plyFile="../windmill_smooth_ply_ply/mesh_17.ply" /></Mesh>
+                    <Faces plyFile="/home/batu/Desktop/RayTracer/RayTracer/System_Files/hw2/inputs/akif_uslu/windmill/windmill_smooth_ply_ply/mesh_17.ply" /></Mesh>
                 <Mesh id="18" shadingMode="smooth">
                     <Material>12</Material>
-                    <Faces plyFile="../windmill_smooth_ply_ply/mesh_18.ply" /></Mesh>
+                    <Faces plyFile="/home/batu/Desktop/RayTracer/RayTracer/System_Files/hw2/inputs/akif_uslu/windmill/windmill_smooth_ply_ply/mesh_18.ply" /></Mesh>
                 <Mesh id="19" shadingMode="smooth">
                     <Material>5</Material>
-                    <Faces plyFile="../windmill_smooth_ply_ply/mesh_19.ply" /></Mesh>
+                    <Faces plyFile="/home/batu/Desktop/RayTracer/RayTracer/System_Files/hw2/inputs/akif_uslu/windmill/windmill_smooth_ply_ply/mesh_19.ply" /></Mesh>
                 <Mesh id="20" shadingMode="smooth">
                     <Material>4</Material>
-                    <Faces plyFile="../windmill_smooth_ply_ply/mesh_20.ply" /></Mesh>
+                    <Faces plyFile="/home/batu/Desktop/RayTracer/RayTracer/System_Files/hw2/inputs/akif_uslu/windmill/windmill_smooth_ply_ply/mesh_20.ply" /></Mesh>
                 <Mesh id="21" shadingMode="smooth">
                     <Material>3</Material>
-                    <Faces plyFile="../windmill_smooth_ply_ply/mesh_21.ply" /></Mesh>
+                    <Faces plyFile="/home/batu/Desktop/RayTracer/RayTracer/System_Files/hw2/inputs/akif_uslu/windmill/windmill_smooth_ply_ply/mesh_21.ply" /></Mesh>
                 <Mesh id="22" shadingMode="smooth">
                     <Material>12</Material>
-                    <Faces plyFile="../windmill_smooth_ply_ply/mesh_22.ply" /></Mesh>
+                    <Faces plyFile="/home/batu/Desktop/RayTracer/RayTracer/System_Files/hw2/inputs/akif_uslu/windmill/windmill_smooth_ply_ply/mesh_22.ply" /></Mesh>
             </Objects>
         </Scene>
     

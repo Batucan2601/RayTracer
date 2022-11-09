@@ -41,7 +41,23 @@ namespace parser
     {
         float x, y, z, w;
     };
+    
+    class Matrix
+    {
+        public:
+        Matrix( int row , int col );
+        float at(int row_index ,int col_index );
+        void set(int row , int col , float num);
+        void Identity();
 
+        //operator
+        Vec4f operator *(const Vec4f & vec1   ); // 4x4 matrix vs 4x1 vector 
+        Matrix operator*( Matrix & matrix   ); // 4x4 matrix vs 4x1 vector 
+
+        std::vector<float> elements;
+        int col_no; 
+        int row_no; 
+    }; 
     struct Camera
     {
         Vec3f position;
@@ -81,16 +97,31 @@ namespace parser
         int v2_id;
     };
 
+    struct Transformations
+    {
+        std::vector<Matrix> scaling;
+        std::vector<Matrix> translation;
+        std::vector<Matrix> rotation; 
+    };
     struct Mesh
     {
         int material_id;
         std::vector<Face> faces;
+        std::vector<Matrix> transformations;
     };
-
+    struct MeshInstance
+    {
+        Mesh* mesh_ptr; 
+        bool reset_transform; 
+        std::vector<Matrix> transformations;
+        int material_id;
+    };
     struct Triangle
     {
         int material_id;
         Face indices;
+        std::vector<Matrix> transformations;
+
     };
 
     struct Sphere
@@ -98,6 +129,8 @@ namespace parser
         int material_id;
         int center_vertex_id;
         float radius;
+        std::vector<Matrix> transformations;
+        int scale_index; 
     };
 
     struct Scene
@@ -114,7 +147,8 @@ namespace parser
         std::vector<Mesh> meshes;
         std::vector<Triangle> triangles;
         std::vector<Sphere> spheres;
-
+        std::vector<MeshInstance> mesh_instances;
+        Transformations transformations;
         //Functions
         void loadFromXml(const std::string &filepath);
     };
@@ -126,18 +160,7 @@ namespace parser
     Vec3f normalize( const  Vec3f &  vec1 );
     float distance(const  Vec3f &  vec1 ,  const  Vec3f & vec2   );
 
-    class Matrix
-    {
-        public:
-        Matrix( int row , int col );
-        float at(int row_index ,int col_index );
-        void set(int row , int col , float num);
-        void Identity();
-        std::vector<float> elements;
-        int col_no; 
-        int row_no; 
-    }; 
-
+    
     void print_matrix(const Matrix & mat );
 }
 
