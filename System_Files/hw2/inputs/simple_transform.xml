@@ -37,7 +37,6 @@
     <Transformations>
         <Scaling id="1">1.5 1.5 1</Scaling>
         <Rotation id="1">20 0 0 1</Rotation>
-        <Translation id="3">0 1 0</Translation>
     </Transformations>
 
     <VertexData>
@@ -54,7 +53,7 @@
     <Objects>
         <Mesh id="1">
             <Material>1</Material>
-            <Transformations>r1 t1</Transformations>
+            <Transformations>r1</Transformations>
             <Faces>
                 3 1 2
                 1 3 4

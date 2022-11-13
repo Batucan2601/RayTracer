@@ -10,7 +10,7 @@ namespace BVH
     {
         public:
         BoundingBox( float x_left , float x_right , float y_down , float y_up , float z_near , float z_far );
-    
+        BoundingBox();
         float x_left ; float x_right ; float y_up ; float y_down ; float z_near ; float z_far ;
         int object_id;
         float t; 
@@ -20,6 +20,8 @@ namespace BVH
         std::vector< BoundingBox > box_vec; 
         BoundingBoxTree *left; 
         BoundingBoxTree *right; 
+        BoundingBoxTree *mid; 
+
         BoundingBox global_bounding_box; 
 
     };
@@ -28,16 +30,20 @@ namespace BVH
     //generate every bounding box
     std::vector< BoundingBox > generate_bounding_boxes(parser::Scene &scene  );
     //setup every node 
-    void setup_bvh_tree( BoundingBoxTree * node   );
+    void setup_bvh_tree( BoundingBoxTree * &node , int splitting_axis    );
     // first thing to do 
-    void setup_bvh_head_node( BoundingBoxTree * head_node ,   std::vector< BoundingBox >&  global_bounding_box  );
+    void setup_bvh_head_node( BoundingBoxTree * &head_node ,   std::vector< BoundingBox >&  global_bounding_box  );
     // traversing tree
     //returns bo containing object id 
-    BoundingBox traverse_tree(BoundingBoxTree * head_node , Ray &ray );
+    BoundingBox traverse_tree(BoundingBoxTree * head_node , Ray &ray , std::vector<std::pair<int, float> > &  object_no_t_pair  );
+    // generate global bounding box
+    void generate_global_bounding_box(BoundingBoxTree * &  head_node);
 
+
+    // !!!!!!!! 
     // calll only this 
-    static void generate_BVH_tree(parser::Scene &scene  , BoundingBoxTree * head_node );
+     void generate_BVH_tree(parser::Scene &scene  , BoundingBoxTree * & head_node );
 
     //test
-    static void test_inorder_traversal(BoundingBoxTree * head_node);
+     void test_inorder_traversal(BoundingBoxTree * head_node);
 }

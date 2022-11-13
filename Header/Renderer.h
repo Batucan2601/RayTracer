@@ -5,6 +5,8 @@
 #include "../Header/Prototypes.h"
 #include "../Header/Ray.h"
 #include "../Header/BVH.h"
+static parser::Vec3f color_pixel_BVH(parser::Scene& scene , Ray & ray, BVH::BoundingBoxTree *&  node  );
+
 // the basic ray tracing block 
 int max_recursion_depth; 
 static void generate_image(parser::Scene & scene)
@@ -29,6 +31,12 @@ static void generate_image(parser::Scene & scene)
         //std::cout << "starting point " <<  starting_point_parser.x << " " << starting_point_parser.y  << starting_point_parser.z << std::endl; 
         //std::cout << "starting point " <<  interval_row.x << " " << interval_row.y  << interval_row.z << std::endl; 
         //std::cout << "starting point " <<  interval_col.x << " " << interval_col.y  << interval_col.z << std::endl; 
+
+        //create bvh tree
+        BVH::BoundingBoxTree boxtree;
+        BVH::BoundingBoxTree* head_node = &boxtree; 
+        BVH::generate_BVH_tree(scene ,head_node );
+
         for (size_t y = 0; y < height; y++)
         {
             for (size_t x = 0; x < width; x++)
@@ -38,7 +46,9 @@ static void generate_image(parser::Scene & scene)
                 // initialize the ray
                 parser::Vec3f current_pixel_world_space =  (starting_point_parser +  ( parser::Vec3f( interval_row.x ,  interval_row.y ,  interval_row.z) * (float)x )  )  +   ( parser::Vec3f( interval_col.x ,  interval_col.y ,  interval_col.z) * (float )y  )  ; 
                 Ray ray(parser::Vec3f( current_camera.position.x , current_camera.position.y , current_camera.position.z  )  , current_pixel_world_space );
-                parser::Vec3f  color = color_pixel(scene  , ray);
+                //parser::Vec3f  color = color_pixel(scene  , ray);
+                parser::Vec3f  color = color_pixel_BVH(scene  , ray , head_node );
+                
                 // color cast 
                 image[i++] = (unsigned char) (color.x);
                 image[i++] = (unsigned char) (color.y);
@@ -145,6 +155,277 @@ static parser::Vec3f color_pixel(parser::Scene& scene , Ray & ray )
     bool is_shadow_rays_active = false;
     int object_id = -1; 
     bool  is_object_hit = ray_object_intersection( ray , scene ,  hit_point , normal  , material   , object_id ,  is_shadow_rays_active);
+    if( !is_object_hit)
+    {
+        return parser::Vec3f(scene.background_color.x, scene.background_color.y , scene.background_color.z );
+    }
+    //normalize normal 
+    //now we got the  nearest hitpoint and normal of that hitpoint. we can calculate color and cast shadow rays
+    
+    //we can add ambient shading
+    color = parser::Vec3f(scene.ambient_light.x , scene.ambient_light.y , scene.ambient_light.z);
+    //  for each light
+    is_shadow_rays_active = true; 
+    for (size_t i = 0; i < scene.point_lights.size(); i++) 
+    {
+        //each light pos 
+        parser::Vec3f light_pos = parser::Vec3f(scene.point_lights[i].position.x , scene.point_lights[i].position.y ,scene.point_lights[i].position.z);
+        
+        //add shadow ray epsilon in direction of normal 
+        hit_point = hit_point +  normal * scene.shadow_ray_epsilon;
+        // cast  shadow ray
+        Ray shadow_ray(hit_point , light_pos );
+
+        
+        // else you directly went to a light
+        
+        parser::Vec3f hit_point_temp; 
+        parser::Vec3f normal_temp;
+        parser::Material material_temp;  
+        bool  is_object_hit = ray_object_intersection( shadow_ray , scene ,  hit_point_temp , normal_temp , material_temp , object_id , is_shadow_rays_active);
+        
+        if( is_object_hit ) // it is in shadow no contribution from light
+        {
+            if( parser::distance(hit_point_temp , hit_point) < parser::distance(hit_point, light_pos) ) //before light source 
+            {
+                continue; 
+            }
+        }
+        
+        if( object_id == 0 )
+            {
+                int a = 0;
+            }
+        // diffuse 
+        parser::Vec3f diffuse = parser::Vec3f( material.diffuse.x , material.diffuse.y, material.diffuse.z);
+        float cosine_alpha = parser::dot(shadow_ray.direction  ,  normal ) / (parser::length(shadow_ray.direction) * parser::length(normal)  ) ; //normal vectors
+        //clamp cosine alpha
+        cosine_alpha = std::max(0.0f , cosine_alpha);
+        diffuse = diffuse * cosine_alpha; 
+        diffuse = parser::Vec3f( diffuse.x * scene.point_lights[i].intensity.x , diffuse.y *  scene.point_lights[i].intensity.y ,diffuse.z *   scene.point_lights[i].intensity.z) / (parser::distance(light_pos , hit_point )*parser::distance(light_pos, hit_point)  );
+        //clamp diffuse
+        diffuse.x = std::min(255.0f , diffuse.x );
+        diffuse.y = std::min(255.0f , diffuse.y );
+        diffuse.z = std::min(255.0f , diffuse.z );
+
+
+        // specular 
+        // specular 
+        parser::Vec3f specular = parser::Vec3f( material.specular.x , material.specular.y, material.specular.z);
+        float phong_exponent = material.phong_exponent; 
+
+        parser::Vec3f viewpos = parser::normalize(ray.origin - hit_point); 
+        parser::Vec3f h =  parser::normalize( shadow_ray.direction + viewpos ); // this might be flawed 
+        float cosine_h_n = parser::dot(h , normal) /  ( parser::length(h) * parser::length(normal) ); // they re both normalised but just in case
+        //clamp cosine
+        cosine_h_n = std::max(0.0f , cosine_h_n );
+
+        specular =    parser::Vec3f( specular.x * scene.point_lights[i].intensity.x , specular.y * scene.point_lights[i].intensity.y  , specular.z * scene.point_lights[i].intensity.z ) / (parser::distance(light_pos , hit_point )*parser::distance(light_pos, hit_point)  ) * std::pow( cosine_h_n , phong_exponent   );  
+        //clamp diffuse
+        specular.x = std::min(255.0f , specular.x );
+        specular.y = std::min(255.0f , specular.y );
+        specular.z = std::min(255.0f , specular.z );
+        
+        if( !material.is_mirror)
+        {
+            if( object_id == 0 )
+            {
+                int a = 0;
+            }
+
+        color =  color + diffuse  + specular  ;   
+        }
+
+
+    }
+    if(material.is_mirror ) // do recursion
+    {
+        if( max_recursion_depth > 0 )
+        {
+            max_recursion_depth -= 1; // max recursion depth is reduced 
+            parser::Vec3f W0 = parser::Vec3f( ray.direction.x  * -1 , ray.direction.y  * -1 , ray.direction.z  * -1  ); 
+            float cosine_omega  = parser::dot( W0 , normal ) / ( parser::length( normal ) * parser::length(W0));
+            parser::Vec3f Wr = W0 * -1.0f +  normal * cosine_omega * 2.0f ;  
+            Ray recursion_ray( hit_point + Wr * 0.001f , hit_point + Wr );
+            parser::Vec3f recursion_color = color_pixel(scene , recursion_ray );
+            color =  color + parser::Vec3f( recursion_color.x  * material.mirror.x ,  recursion_color.y  * material.mirror.y  ,  recursion_color.z  * material.mirror.z ); 
+        }
+        
+    }
+    else if( material.is_dielectric)
+    {
+        //for wt however...
+        // assume refractive index of air is 1
+        float n1 = 1.0f; 
+        float n2 = material.refraction_index;
+        parser::Vec3f W0 = parser::Vec3f( ray.direction.x  * -1 , ray.direction.y  * -1 , ray.direction.z  * -1  ); // wr we want
+        float cosine_omega  = parser::dot( W0 , normal ) / ( parser::length( normal ) * parser::length(W0));
+        parser::Vec3f Wr = W0 *-1  +  normal * cosine_omega * 2.0f ;  
+        float sine_omega = std::sqrt(1 -  ( cosine_omega*cosine_omega) );
+        float sine_phi = n1/n2 *  sine_omega;
+        float cosine_phi = (1 -   ( ( (n1/n2) * (n1/n2) )  *(1 -  (cosine_omega*cosine_omega )) )  );
+        parser::Vec3f wt =  ((W0 * -1.0f  + ( normal * cosine_omega )   ) * ( n1 / n2) )  -  ( normal * cosine_phi ) ;
+        // compute reflection ratio
+        float r_parallel  = (n2 * cosine_omega - n1 * cosine_phi) / ( n2* cosine_omega + n1 * cosine_phi); 
+        float r_ortho =  (n1 * cosine_omega - n2 * cosine_phi) / (n1 * cosine_omega - n2 * cosine_phi);
+        float reflection_ratio = 0.5f * ( r_parallel * r_parallel + r_ortho * r_ortho);
+
+        // compute transmission ratio 
+        float refraction_ratio = 1 - reflection_ratio; 
+        Ray reflection_ray( hit_point + Wr * 0.005f , hit_point + Wr  ); // real WR 
+        Ray refraction_ray( hit_point + wt * 0.005f , hit_point + wt ); //real Wt 
+
+        parser::Vec3f reflection_color(0.0f , 0.0f , 0.0f );
+        parser::Vec3f refraction_color(0.0f , 0.0f , 0.0f );
+        if( max_recursion_depth > 0 )
+        {
+            max_recursion_depth -= 1; 
+            //calculate second hit 
+            parser::Vec3f second_hit_point(0.0f , 0.0f , 0.0f );
+            parser::Vec3f second_normal(0.0f ,0.0f , 0.0f );
+            // calculate attenuation
+            bool is_hit = calculate_second_hitpoint_in_same_object( scene , refraction_ray , hit_point , normal , object_id  , second_hit_point , second_normal);
+            if ( is_hit  && cosine_phi > 0 ) // if cosine phi less than 0 abort 
+            {
+                cosine_phi = std::sqrt(cosine_phi);
+                float distance = sqrt( ( hit_point.x - second_hit_point.x) * ( hit_point.x - second_hit_point.x)  + ( hit_point.y - second_hit_point.y) * ( hit_point.y - second_hit_point.y) + ( hit_point.z - second_hit_point.z) * ( hit_point.z - second_hit_point.z)    ); 
+                // now exit the medium 
+                // now n1 and n2 are swaped
+                float temp_n = n2;
+                n2 = n1;
+                n1 = temp_n;
+
+                second_normal = second_normal * -1; //negate normal
+                parser::Vec3f W0 =  refraction_ray.direction * -1;
+                float cosine_omega  = parser::dot( W0 , second_normal ) / ( parser::length( second_normal ) * parser::length(W0));
+                float sine_omega = std::sqrt(1 -  ( cosine_omega*cosine_omega) );
+                float sine_phi  = n1/n2 *  sine_omega;
+                float cosine_phi = (1 -  (n1/n2) * (n1/n2) *(1 -  cosine_omega*cosine_omega) );
+                parser::Vec3f wt = ( W0 * -1.0f  + (second_normal * cosine_omega )  ) * ( n1 / n2) -  ( second_normal * cosine_phi ) ;
+                Ray out_ray( second_hit_point + (wt * ( 0.005f)) ,  second_hit_point + wt );
+                //std::cout << "hit point  " << hit_point.x << " " << hit_point.y << "  " << hit_point.z << std::endl;
+                //std::cout << "second hit point  " << second_hit_point.x << " " << second_hit_point.y  << " " << out_ray.origin.z << std::endl; 
+                if( cosine_phi  > 0 ) //  else abort the refraction ray 
+                {
+                    cosine_phi = std::sqrt(cosine_phi);
+                    reflection_color =   color_pixel(scene ,reflection_ray) * reflection_ratio * 0.1f;
+                    refraction_color = color_pixel(scene , out_ray  ) * refraction_ratio; // L(0)
+                    // attenuation 
+                
+                    parser::Vec3f c  = parser::Vec3f( material.absorptionCoefficient.x ,  material.absorptionCoefficient.y  ,  material.absorptionCoefficient.z )  ;
+                    float e = 2.7182818f;
+                    refraction_color.x = refraction_color.x * powf32(e , -1 * c.x * distance  );
+                    refraction_color.y = refraction_color.y * powf32(e , -1 * c.y * distance  );
+                    refraction_color.z = refraction_color.z * powf32(e , -1 * c.z * distance  );
+                    //std::cout << "refraction color   " << reflection_color.x << " " << reflection_color.y  << " " << reflection_color.z << std::endl; 
+                }
+                else
+                {
+                    reflection_color =   color_pixel(scene ,reflection_ray) ;
+                }
+
+            }
+            else
+            {
+                    reflection_color =   color_pixel(scene ,reflection_ray) ;
+            }
+            //refraction_color =  color_pixel(scene ,refraction_ray) * refraction_ratio ;
+        }
+        
+        color = color  + refraction_color + reflection_color;
+
+    }
+    else if( material.is_conductor)
+    {
+        //for wt however...
+        // assume rfeeractive index of air is 1
+        float k = material.absorption_index ; 
+        float n1 = 1.0f; 
+        float n2 = material.refraction_index;
+        parser::Vec3f view_pos = parser::Vec3f( ray.direction.x  * -1 , ray.direction.y  * -1 , ray.direction.z  * -1  ); 
+        float cosine_omega  = parser::dot( view_pos , normal ) / ( parser::length( normal ) * parser::length(view_pos));
+        parser::Vec3f vr =  view_pos * -1  +  normal * cosine_omega * 2.0f ;  
+        float sine_omega = std::sqrt(1 -  ( cosine_omega*cosine_omega) );
+        float sine_phi = n1/n2 *  sine_omega;
+        float cosine_phi = std::sqrt(1 -  ( sine_phi*sine_phi) );
+        parser::Vec3f wt = (ray.direction +  normal * cosine_omega  ) * ( n1 / n2) -  ( normal * cosine_phi ) ;
+        // compute reflection ratio
+        float r_s  =  ( ( n2 * n2 + k * k ) - 2 * n2 * cosine_omega + (cosine_omega * cosine_omega ) )  / ( ( n2 * n2 + k * k ) + 2 * n2 * cosine_omega + (cosine_omega * cosine_omega ));  
+        float r_p =   ( ( n2 * n2 + k * k ) * (cosine_omega * cosine_omega )  - 2 * n2 * cosine_omega + 1  ) / (( n2 * n2 + k * k ) * (cosine_omega * cosine_omega )  + 2 * n2 * cosine_omega + 1 );
+        float reflection_ratio = 0.5f * ( r_s + r_p);
+
+        // compute transmission ratio 
+        if( max_recursion_depth > 0 )
+        {
+            max_recursion_depth -= 1; 
+            Ray reflection_ray( hit_point +  ( vr * (0.01f) )  , hit_point + vr  );
+            parser::Vec3f reflection_color =   color_pixel(scene ,reflection_ray) * reflection_ratio ;
+            reflection_color = parser::Vec3f( reflection_color.x * material.mirror.x , reflection_color.y * material.mirror.y , reflection_color.z * material.mirror.z);
+            color = color + reflection_color; 
+        }
+       
+
+    }
+    //clamp color
+    color.x = std::min( color.x , 255.0f );
+    color.y = std::min( color.y , 255.0f );
+    color.z = std::min( color.z , 255.0f );
+
+    //clamp to nearest integer
+    color.x = (float) ( (int ) color.x );
+    color.y = (float) ( (int ) color.y );
+    color.z = (float) ( (int ) color.z );
+
+    return color; 
+
+    
+
+}
+
+
+static parser::Vec3f color_pixel_BVH(parser::Scene& scene , Ray & ray, BVH::BoundingBoxTree *&  node  )
+{
+     
+    parser::Vec3f color(0.0f , 0.0f , 0.0f );
+    
+    parser::Vec3f hit_point; 
+    parser::Vec3f normal;
+    parser::Material material; 
+    material.is_conductor = false; 
+    material.is_dielectric = false; 
+    material.is_mirror = false; 
+
+
+    //find the hitpoint 
+    bool is_shadow_rays_active = false;
+    int object_id = -1; 
+    std::vector<std::pair<int,float> >  object_no_t_pair; 
+    BVH::BoundingBox box = BVH::traverse_tree(node , ray , object_no_t_pair );
+    if( box.object_id == -1 ) // not hit 
+    {
+        return parser::Vec3f(scene.background_color.x, scene.background_color.y , scene.background_color.z );
+    }
+    //else
+    //check all ofthe objects it has hit 
+    std::pair<int , float > currentpair;
+    currentpair.second = INFINITY; 
+    bool  is_object_hit = false; 
+    for (size_t i = 0; i < object_no_t_pair.size(); i++)
+    {
+        bool is_object_hit_loop = ray_object_intersection( ray , scene ,  hit_point , normal  , material   , object_id ,  is_shadow_rays_active , object_no_t_pair[i].first);
+        if( is_object_hit_loop )
+        {
+            is_object_hit = is_object_hit_loop;
+            if(object_no_t_pair[i].second < currentpair.second  )
+            {
+                currentpair.second = object_no_t_pair[i].second;
+                currentpair.first = object_no_t_pair[i].first;
+            }
+        }
+    }
+    
+     
+    
     if( !is_object_hit)
     {
         return parser::Vec3f(scene.background_color.x, scene.background_color.y , scene.background_color.z );
@@ -361,5 +642,3 @@ static parser::Vec3f color_pixel(parser::Scene& scene , Ray & ray )
     
 
 }
-
-

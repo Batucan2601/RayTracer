@@ -379,6 +379,9 @@ void parser::Scene::loadFromXml(const std::string &filepath)
     while (element)
     {
         Mesh mesh;
+        mesh.transformation.Identity(); // set I 
+        mesh.transformation_inverse.Identity(); // set I 
+
         child = element->FirstChildElement("Material");
         stream << child->GetText() << std::endl;
         stream >> mesh.material_id;
@@ -443,18 +446,30 @@ void parser::Scene::loadFromXml(const std::string &filepath)
                 {
                     Matrix m = transformations.translation[no-1];
                     mesh.transformations.push_back(m);
+
+                    mesh.transformation = m * mesh.transformation; 
                 }
                 else if(first == 's') //sclae 
                 {
                     Matrix m = transformations.scaling[no-1];
                     mesh.transformations.push_back(m);
+
+                    mesh.transformation = m * mesh.transformation; 
+
                 }
                 else if( first == 'r') //rotate 
                 {
                     Matrix m = transformations.rotation[no-1];
                     mesh.transformations.push_back(m);
+
+                    mesh.transformation = m * mesh.transformation; 
+
                 }
             }
+
+            //get the inverse
+            mesh.transformation_inverse = mesh.transformation.inverse();
+
             stream.clear();
         }
         meshes.push_back(mesh);
@@ -471,6 +486,9 @@ void parser::Scene::loadFromXml(const std::string &filepath)
     while (element)
     {
         MeshInstance mesh_instance;
+        mesh_instance.transformation.Identity();
+        mesh_instance.transformation_inverse.Identity();
+
         std::string base_mesh = element->Attribute("baseMeshId");
         mesh_instance.mesh_ptr = &this->meshes[std::stoi(base_mesh) - 1 ];
         std::cout << "base mesh id " << base_mesh << std::endl; 
@@ -481,10 +499,13 @@ void parser::Scene::loadFromXml(const std::string &filepath)
         {
             //means false
             mesh_instance.reset_transform = false; 
+            mesh_instance.transformation = this->meshes[std::stoi(base_mesh) - 1 ].transformation;
+
         }
         else
         {
             mesh_instance.reset_transform = true; 
+            
         }
 
         child = element->FirstChildElement("Material");
@@ -507,18 +528,24 @@ void parser::Scene::loadFromXml(const std::string &filepath)
                 {
                     Matrix m = transformations.translation[no-1];
                     mesh_instance.transformations.push_back(m);
+                    mesh_instance.transformation = m *  mesh_instance.transformation;   
                 }
                 else if(first == 's') //sclae 
                 {
                     Matrix m = transformations.scaling[no-1];
                     mesh_instance.transformations.push_back(m);
+                    mesh_instance.transformation = m * mesh_instance.transformation ;   
+
                 }
                 else if( first == 'r') //rotate 
                 {
                     Matrix m = transformations.rotation[no-1];
                     mesh_instance.transformations.push_back(m);
+                    mesh_instance.transformation = m * mesh_instance.transformation;   
+
                 }
             }
+            mesh_instance.transformation_inverse =     mesh_instance.transformation.inverse();
             stream.clear();
         }
         mesh_instances.push_back(mesh_instance);
@@ -532,6 +559,9 @@ void parser::Scene::loadFromXml(const std::string &filepath)
     while (element)
     {
         Triangle triangle;
+        triangle.transformation.Identity();
+        triangle.transformation_inverse.Identity();
+
         child = element->FirstChildElement("Material");
         stream << child->GetText() << std::endl;
         stream >> triangle.material_id;
@@ -553,17 +583,25 @@ void parser::Scene::loadFromXml(const std::string &filepath)
                 {
                     Matrix m = transformations.translation[no-1];
                     triangle.transformations.push_back(m);
+
+                    triangle.transformation = m * triangle.transformation;
                 }
                 else if(first == 's') //sclae 
                 {
                     Matrix m = transformations.scaling[no-1];
                     triangle.transformations.push_back(m);
+                    triangle.transformation = m * triangle.transformation;
+
                 }
                 else if( first == 'r') //rotate 
                 {
                     Matrix m = transformations.rotation[no-1];
                     triangle.transformations.push_back(m);
+                    triangle.transformation = m * triangle.transformation;
+
                 }
+
+                triangle.transformation_inverse = triangle.transformation.inverse();
             }
         }
         stream.clear();
@@ -578,6 +616,9 @@ void parser::Scene::loadFromXml(const std::string &filepath)
     while (element)
     {
         Sphere sphere;
+        sphere.transformation.Identity();
+        sphere.transformation_inverse.Identity();
+
         child = element->FirstChildElement("Material");
         stream << child->GetText() << std::endl;
         sphere.material_id = std::stoi(child->GetText());
@@ -607,19 +648,24 @@ void parser::Scene::loadFromXml(const std::string &filepath)
                 {
                     Matrix m = transformations.translation[no-1];
                     sphere.transformations.push_back(m);
+                    sphere.transformation = m * sphere.transformation;
                 }
                 else if(first == 's') //scale 
                 {
                     Matrix m = transformations.scaling[no-1];
                     sphere.transformations.push_back(m);
-                    sphere.scale_index = sphere.transformations.size() -1;;
+                    sphere.scale_indices.push_back( sphere.transformations.size() -1) ;
+                    sphere.transformation = m * sphere.transformation ;
+
                 }
                 else if( first == 'r') //rotate 
                 {
                     Matrix m = transformations.rotation[no-1];
                     sphere.transformations.push_back(m);
+                    sphere.transformation = m * sphere.transformation ;
                 }
             }
+            sphere.transformation_inverse = sphere.transformation.inverse();
         }
         stream.clear();
         
@@ -808,6 +854,17 @@ parser::Matrix::Matrix(int row_no , int col_no )
     }
     
 }
+parser::Matrix::Matrix()
+{
+    this->row_no = 4;
+    this->col_no = 4;
+
+    for (size_t i = 0; i < row_no * col_no; i++)
+    {
+        elements.push_back(0.0f);
+    }
+    
+}
 float parser::Matrix::at(int row_index , int col_index)
 {
     return elements[ row_index * this->col_no  + col_index];
@@ -869,11 +926,161 @@ parser::Matrix parser::Matrix::operator*( parser::Matrix & matrix   ) // 4x4 mat
     mat.set(2 , 2 , this->at( 2,0 ) * matrix.at(0,2) + this->at( 2,1 ) * matrix.at(1,2) + this->at( 2,2 ) * matrix.at(2,2) + this->at( 2,3 ) * matrix.at(3,2)  );
     mat.set(2 , 3 , this->at( 2,0 ) * matrix.at(0,3) + this->at( 2,1 ) * matrix.at(1,3) + this->at( 2,2 ) * matrix.at(2,3) + this->at( 2,3 ) * matrix.at(3,3)  );
 
-    mat.set(2 , 0 , this->at( 3,0 ) * matrix.at(0,0) + this->at( 3,1 ) * matrix.at(1,0) + this->at( 3,2 ) * matrix.at(2,0) + this->at( 3,3 ) * matrix.at(3,0)  );
-    mat.set(2 , 1 , this->at( 3,0 ) * matrix.at(0,1) + this->at( 3,1 ) * matrix.at(1,1) + this->at( 3,2 ) * matrix.at(2,1) + this->at( 3,3 ) * matrix.at(3,1)  );
-    mat.set(2 , 2 , this->at( 3,0 ) * matrix.at(0,2) + this->at( 3,1 ) * matrix.at(1,2) + this->at( 3,2 ) * matrix.at(2,2) + this->at( 3,3 ) * matrix.at(3,2)  );
-    mat.set(2 , 3 , this->at( 3,0 ) * matrix.at(0,3) + this->at( 3,1 ) * matrix.at(1,3) + this->at( 3,2 ) * matrix.at(2,3) + this->at( 3,3 ) * matrix.at(3,3)  );
+    mat.set(3 , 0 , this->at( 3,0 ) * matrix.at(0,0) + this->at( 3,1 ) * matrix.at(1,0) + this->at( 3,2 ) * matrix.at(2,0) + this->at( 3,3 ) * matrix.at(3,0)  );
+    mat.set(3 , 1 , this->at( 3,0 ) * matrix.at(0,1) + this->at( 3,1 ) * matrix.at(1,1) + this->at( 3,2 ) * matrix.at(2,1) + this->at( 3,3 ) * matrix.at(3,1)  );
+    mat.set(3 , 2 , this->at( 3,0 ) * matrix.at(0,2) + this->at( 3,1 ) * matrix.at(1,2) + this->at( 3,2 ) * matrix.at(2,2) + this->at( 3,3 ) * matrix.at(3,2)  );
+    mat.set(3 , 3 , this->at( 3,0 ) * matrix.at(0,3) + this->at( 3,1 ) * matrix.at(1,3) + this->at( 3,2 ) * matrix.at(2,3) + this->at( 3,3 ) * matrix.at(3,3)  );
 
     return mat; 
     
+}
+parser::Matrix parser::Matrix::inverse()
+{
+    Matrix inv(4,4);
+    double det;
+    int i;
+    
+    inv.elements[0] = this->elements[5]  * this->elements[10] * this->elements[15] - 
+             this->elements[5]  * this->elements[11] * this->elements[14] - 
+             this->elements[9]  * this->elements[6]  * this->elements[15] + 
+             this->elements[9]  * this->elements[7]  * this->elements[14] +
+             this->elements[13] * this->elements[6]  * this->elements[11] - 
+             this->elements[13] * this->elements[7]  * this->elements[10];
+
+    inv.elements[4] = -this->elements[4]  * this->elements[10] * this->elements[15] + 
+              this->elements[4]  * this->elements[11] * this->elements[14] + 
+              this->elements[8]  * this->elements[6]  * this->elements[15] - 
+              this->elements[8]  * this->elements[7]  * this->elements[14] - 
+              this->elements[12] * this->elements[6]  * this->elements[11] + 
+              this->elements[12] * this->elements[7]  * this->elements[10];
+
+    inv.elements[8] = this->elements[4]  * this->elements[9] * this->elements[15] - 
+             this->elements[4]  * this->elements[11] * this->elements[13] - 
+             this->elements[8]  * this->elements[5] * this->elements[15] + 
+             this->elements[8]  * this->elements[7] * this->elements[13] + 
+             this->elements[12] * this->elements[5] * this->elements[11] - 
+             this->elements[12] * this->elements[7] * this->elements[9];
+
+    inv.elements[12] = -this->elements[4]  * this->elements[9] * this->elements[14] + 
+               this->elements[4]  * this->elements[10] * this->elements[13] +
+               this->elements[8]  * this->elements[5] * this->elements[14] - 
+               this->elements[8]  * this->elements[6] * this->elements[13] - 
+               this->elements[12] * this->elements[5] * this->elements[10] + 
+               this->elements[12] * this->elements[6] * this->elements[9];
+
+    inv.elements[1] = -this->elements[1]  * this->elements[10] * this->elements[15] + 
+              this->elements[1]  * this->elements[11] * this->elements[14] + 
+              this->elements[9]  * this->elements[2] * this->elements[15] - 
+              this->elements[9]  * this->elements[3] * this->elements[14] - 
+              this->elements[13] * this->elements[2] * this->elements[11] + 
+              this->elements[13] * this->elements[3] * this->elements[10];
+
+    inv.elements[5] = this->elements[0]  * this->elements[10] * this->elements[15] - 
+             this->elements[0]  * this->elements[11] * this->elements[14] - 
+             this->elements[8]  * this->elements[2] * this->elements[15] + 
+             this->elements[8]  * this->elements[3] * this->elements[14] + 
+             this->elements[12] * this->elements[2] * this->elements[11] - 
+             this->elements[12] * this->elements[3] * this->elements[10];
+
+    inv.elements[9] = -this->elements[0]  * this->elements[9] * this->elements[15] + 
+              this->elements[0]  * this->elements[11] * this->elements[13] + 
+              this->elements[8]  * this->elements[1] * this->elements[15] - 
+              this->elements[8]  * this->elements[3] * this->elements[13] - 
+              this->elements[12] * this->elements[1] * this->elements[11] + 
+              this->elements[12] * this->elements[3] * this->elements[9];
+
+    inv.elements[13] = this->elements[0]  * this->elements[9] * this->elements[14] - 
+              this->elements[0]  * this->elements[10] * this->elements[13] - 
+              this->elements[8]  * this->elements[1] * this->elements[14] + 
+              this->elements[8]  * this->elements[2] * this->elements[13] + 
+              this->elements[12] * this->elements[1] * this->elements[10] - 
+              this->elements[12] * this->elements[2] * this->elements[9];
+
+    inv.elements[2] = this->elements[1]  * this->elements[6] * this->elements[15] - 
+             this->elements[1]  * this->elements[7] * this->elements[14] - 
+             this->elements[5]  * this->elements[2] * this->elements[15] + 
+             this->elements[5]  * this->elements[3] * this->elements[14] + 
+             this->elements[13] * this->elements[2] * this->elements[7] - 
+             this->elements[13] * this->elements[3] * this->elements[6];
+
+    inv.elements[6] = -this->elements[0]  * this->elements[6] * this->elements[15] + 
+              this->elements[0]  * this->elements[7] * this->elements[14] + 
+              this->elements[4]  * this->elements[2] * this->elements[15] - 
+              this->elements[4]  * this->elements[3] * this->elements[14] - 
+              this->elements[12] * this->elements[2] * this->elements[7] + 
+              this->elements[12] * this->elements[3] * this->elements[6];
+
+    inv.elements[10] = this->elements[0]  * this->elements[5] * this->elements[15] - 
+              this->elements[0]  * this->elements[7] * this->elements[13] - 
+              this->elements[4]  * this->elements[1] * this->elements[15] + 
+              this->elements[4]  * this->elements[3] * this->elements[13] + 
+              this->elements[12] * this->elements[1] * this->elements[7] - 
+              this->elements[12] * this->elements[3] * this->elements[5];
+
+    inv.elements[14] = -this->elements[0]  * this->elements[5] * this->elements[14] + 
+               this->elements[0]  * this->elements[6] * this->elements[13] + 
+               this->elements[4]  * this->elements[1] * this->elements[14] - 
+               this->elements[4]  * this->elements[2] * this->elements[13] - 
+               this->elements[12] * this->elements[1] * this->elements[6] + 
+               this->elements[12] * this->elements[2] * this->elements[5];
+
+    inv.elements[3] = -this->elements[1] * this->elements[6] * this->elements[11] + 
+              this->elements[1] * this->elements[7] * this->elements[10] + 
+              this->elements[5] * this->elements[2] * this->elements[11] - 
+              this->elements[5] * this->elements[3] * this->elements[10] - 
+              this->elements[9] * this->elements[2] * this->elements[7] + 
+              this->elements[9] * this->elements[3] * this->elements[6];
+
+    inv.elements[7] = this->elements[0] * this->elements[6] * this->elements[11] - 
+             this->elements[0] * this->elements[7] * this->elements[10] - 
+             this->elements[4] * this->elements[2] * this->elements[11] + 
+             this->elements[4] * this->elements[3] * this->elements[10] + 
+             this->elements[8] * this->elements[2] * this->elements[7] - 
+             this->elements[8] * this->elements[3] * this->elements[6];
+
+    inv.elements[11] = -this->elements[0] * this->elements[5] * this->elements[11] + 
+               this->elements[0] * this->elements[7] * this->elements[9] + 
+               this->elements[4] * this->elements[1] * this->elements[11] - 
+               this->elements[4] * this->elements[3] * this->elements[9] - 
+               this->elements[8] * this->elements[1] * this->elements[7] + 
+               this->elements[8] * this->elements[3] * this->elements[5];
+
+    inv.elements[15] = this->elements[0] * this->elements[5] * this->elements[10] - 
+              this->elements[0] * this->elements[6] * this->elements[9] - 
+              this->elements[4] * this->elements[1] * this->elements[10] + 
+              this->elements[4] * this->elements[2] * this->elements[9] + 
+              this->elements[8] * this->elements[1] * this->elements[6] - 
+              this->elements[8] * this->elements[2] * this->elements[5];
+
+    det = this->elements[0] * inv.elements[0] + this->elements[1] * inv.elements[4] + this->elements[2] * inv.elements[8] + this->elements[3] * inv.elements[12];
+
+    det = 1.0 / det;
+
+    for (i = 0; i < 16; i++)
+        inv.elements[i] = inv.elements[i] * det;
+
+    return inv;
+}
+void parser::Matrix::Transpose()
+{
+    std::vector<float> temp_element  =this->elements; 
+    this->elements[0] = temp_element[0];
+    this->elements[1] = temp_element[4];
+    this->elements[2] = temp_element[8];
+    this->elements[3] = temp_element[12]; 
+
+    this->elements[4] = temp_element[1]; 
+    this->elements[5] = temp_element[5];
+    this->elements[6] = temp_element[9];
+    this->elements[7] = temp_element[13]; 
+
+    this->elements[8] = temp_element[2]; 
+    this->elements[9] = temp_element[6];
+    this->elements[10] = temp_element[10];
+    this->elements[11] = temp_element[14]; 
+
+    this->elements[12] = temp_element[3]; 
+    this->elements[13] = temp_element[7];
+    this->elements[14] = temp_element[11];
+    this->elements[15] = temp_element[15]; 
 }

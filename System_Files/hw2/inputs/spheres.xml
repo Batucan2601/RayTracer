@@ -43,7 +43,7 @@
         <Translation id="2">0 5 0</Translation>
         <Translation id="3">15 5 -10</Translation>
         <Translation id="4">50 5 -40</Translation>
-        <Scaling id="1">5 5 5</Scaling>
+        <Scaling id="1">5 5 1</Scaling>
         <Scaling id="2">100 1 100</Scaling>
     </Transformations>
 

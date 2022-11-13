@@ -46,10 +46,13 @@ namespace parser
     {
         public:
         Matrix( int row , int col );
+        Matrix();
+
         float at(int row_index ,int col_index );
         void set(int row , int col , float num);
         void Identity();
-
+        void Transpose();
+        Matrix inverse();
         //operator
         Vec4f operator *(const Vec4f & vec1   ); // 4x4 matrix vs 4x1 vector 
         Matrix operator*( Matrix & matrix   ); // 4x4 matrix vs 4x1 vector 
@@ -108,6 +111,10 @@ namespace parser
         int material_id;
         std::vector<Face> faces;
         std::vector<Matrix> transformations;
+
+        Matrix transformation; 
+        Matrix transformation_inverse; 
+
     };
     struct MeshInstance
     {
@@ -115,6 +122,9 @@ namespace parser
         bool reset_transform; 
         std::vector<Matrix> transformations;
         int material_id;
+
+        Matrix transformation; 
+        Matrix transformation_inverse; 
     };
     struct Triangle
     {
@@ -122,6 +132,8 @@ namespace parser
         Face indices;
         std::vector<Matrix> transformations;
 
+        Matrix transformation; 
+        Matrix transformation_inverse; 
     };
 
     struct Sphere
@@ -130,7 +142,10 @@ namespace parser
         int center_vertex_id;
         float radius;
         std::vector<Matrix> transformations;
-        int scale_index; 
+        std::vector<int> scale_indices; 
+
+        Matrix transformation; 
+        Matrix transformation_inverse; 
     };
 
     struct Scene
