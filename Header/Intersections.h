@@ -2,6 +2,7 @@
 #include "Renderer.h"
 #include <math.h>       /* isnan, std */
 #include "../System_Files/support_files/parser.h"
+
 static bool ray_plane_intersection(const Ray& ray , const parser::Vec3f & p1 ,  const parser::Vec3f & normal , parser::Vec3f & hitpoint  )
 {
     
@@ -123,6 +124,7 @@ static bool ray_sphere_intersection(const Ray& ray ,  parser::Sphere& sphere ,  
 
     Ray inv_ray(origin_inv_3f  , dir_inv_3f  );
 
+    //center translation 
 
     // at^2 + bT + c = 0
     parser::Vec3f O = inv_ray.origin; 
@@ -197,6 +199,7 @@ static bool ray_sphere_intersection(const Ray& ray ,  parser::Sphere& sphere ,  
         normal.x = normal_inv.x / normal_inv.w;
         normal.y = normal_inv.y / normal_inv.w;
         normal.z = normal_inv.z / normal_inv.w;
+    std::cout << parser::dot( normal , hitpoint ) << std::endl; 
 
         return true;  
     }
@@ -257,7 +260,6 @@ static bool ray_sphere_intersection(const Ray& ray ,  parser::Sphere& sphere ,  
 
     hitpoint_4f = sphere.transformation * hitpoint_4f;
 
-
     //deneme
     parser::Matrix trans_inverse_transpose = sphere.transformation.inverse();
     trans_inverse_transpose.Transpose();
@@ -268,15 +270,25 @@ static bool ray_sphere_intersection(const Ray& ray ,  parser::Sphere& sphere ,  
     hitpoint.y = hitpoint_4f.y / hitpoint_4f.w;
     hitpoint.z = hitpoint_4f.z / hitpoint_4f.w;
 
-    normal.x = normal_inv.x / normal_inv.w;
-    normal.y = normal_inv.y / normal_inv.w;
-    normal.z = normal_inv.z / normal_inv.w;
+    normal.x = normal_inv.x;
+    normal.y = normal_inv.y;
+    normal.z = normal_inv.z;
+
+    normal = parser::normalize(normal);
     return true; 
 
 }
 //a mesh intersection 
-static bool calculate_intersection(parser::Scene& scene ,parser::Mesh& object ,const Ray & ray , parser::Vec3f & intersection_normal ,  parser::Vec3f & intersection_point  )
+static bool calculate_intersection(parser::Scene& scene ,parser::Mesh& object ,const Ray & ray , parser::Vec3f & intersection_normal ,  parser::Vec3f & intersection_point , bool is_shadow_rays_active  )
 {
+    //motion blur
+    if( !is_shadow_rays_active )
+    {
+        object.current_motion_blur.x = ray.time_parameter * object.motion_blur.x;
+        object.current_motion_blur.y = ray.time_parameter * object.motion_blur.y;
+        object.current_motion_blur.z = ray.time_parameter * object.motion_blur.z;
+    
+    }
     std::vector<parser::Vec3f> hit_points; // there can be multiple hitpoints for an object 
     std::vector<parser::Vec3f> normals; 
     std::vector<parser::Face> faces; 
@@ -312,9 +324,9 @@ static bool calculate_intersection(parser::Scene& scene ,parser::Mesh& object ,c
     for (size_t i = 0; i < object.faces.size(); i++)
     {
         //get points
-        parser::Vec3f p1 = parser::Vec3f( scene.vertex_data[ (object.faces[i].v0_id-1)    ].x , scene.vertex_data[ (object.faces[i].v0_id-1)    ].y , scene.vertex_data[ (object.faces[i].v0_id-1)  ].z); 
-        parser::Vec3f p2 = parser::Vec3f( scene.vertex_data[ (object.faces[i].v1_id-1)   ].x , scene.vertex_data[ (object.faces[i].v1_id-1)  ].y , scene.vertex_data[ (object.faces[i].v1_id-1)   ].z);
-        parser::Vec3f p3 = parser::Vec3f( scene.vertex_data[ (object.faces[i].v2_id-1)   ].x , scene.vertex_data[ (object.faces[i].v2_id-1)    ].y , scene.vertex_data[ (object.faces[i].v2_id-1)   ].z);
+        parser::Vec3f p1 = parser::Vec3f( scene.vertex_data[ (object.faces[i].v0_id-1)    ].x + object.current_motion_blur.x , scene.vertex_data[ (object.faces[i].v0_id-1)    ].y  + object.current_motion_blur.y , scene.vertex_data[ (object.faces[i].v0_id-1)  ].z +  object.current_motion_blur.z); 
+        parser::Vec3f p2 = parser::Vec3f( scene.vertex_data[ (object.faces[i].v1_id-1)   ].x + object.current_motion_blur.x , scene.vertex_data[ (object.faces[i].v1_id-1)  ].y +  object.current_motion_blur.y , scene.vertex_data[ (object.faces[i].v1_id-1)   ].z +  object.current_motion_blur.z);
+        parser::Vec3f p3 = parser::Vec3f( scene.vertex_data[ (object.faces[i].v2_id-1)   ].x + object.current_motion_blur.x, scene.vertex_data[ (object.faces[i].v2_id-1)    ].y + object.current_motion_blur.y , scene.vertex_data[ (object.faces[i].v2_id-1)   ].z +  object.current_motion_blur.z);
 
         parser::Vec3f normal = parser::normalize(parser::cross((p2-p1) , (p3-p1)) );
         #ifdef DEBUG 
@@ -336,10 +348,6 @@ static bool calculate_intersection(parser::Scene& scene ,parser::Mesh& object ,c
         parser::Vec3f temp_intersection_point(0.0f , 0.0f , 0.f );
         if( ray_triangle_intersection(inv_ray , p1 , p2 , p3 , normal , temp_intersection_point) )
         {
-            /*std::cout << " P 1 " << p1.x << " " << p1.y << " " << p1.z << std::endl;
-            std::cout << " P 2 " << p2.x << " " << p2.y << " " << p2.z << std::endl;
-            std::cout << " P 3 " << p3.x << " " << p3.y << " " << p3.z << std::endl;*/
-
             //if hit  multiply bacck with transformation 
             parser::Vec4f temp_intersection_real_coord;
             temp_intersection_real_coord.x = temp_intersection_point.x;
@@ -363,9 +371,85 @@ static bool calculate_intersection(parser::Scene& scene ,parser::Mesh& object ,c
             normal.y = normal_real_cord.y / normal_real_cord.w;
             normal.z = normal_real_cord.z / normal_real_cord.w;
 
+            normal = parser::normalize(normal);
+
+            parser::Vec4f p1_4; 
+            p1_4.x = p1.x; 
+            p1_4.y = p1.y; 
+            p1_4.z = p1.z;
+            p1_4.w = 1;  
+            p1_4 = object.transformation * p1_4;
+            p1.x = p1_4.x / p1_4.w; 
+            p1.y = p1_4.y / p1_4.w; 
+            p1.z = p1_4.z / p1_4.w; 
+
+            parser::Vec4f p2_4; 
+            p2_4.x = p2.x; 
+            p2_4.y = p2.y; 
+            p2_4.z = p2.z;
+            p2_4.w = 1;  
+            p2_4 = object.transformation * p2_4;
+            p2.x = p2_4.x / p2_4.w; 
+            p2.y = p2_4.y / p2_4.w; 
+            p2.z = p2_4.z / p2_4.w; 
+
+            
+
+            parser::Vec4f p3_4; 
+            p3_4.x = p3.x; 
+            p3_4.y = p3.y; 
+            p3_4.z = p3.z;
+            p3_4.w = 1;  
+            p3_4 = object.transformation * p3_4;
+            p3.x = p3_4.x / p3_4.w; 
+            p3.y = p3_4.y / p3_4.w; 
+            p3.z = p3_4.z / p3_4.w; 
+
+            normal = parser::normalize( parser::cross(p2 - p1 , p3 - p1) );
+
+
+
             hit_points.push_back(temp_intersection_point);
             normals.push_back(normal);
-        }
+        } 
+        /*parser::Vec4f p1_4; 
+        p1_4.x = p1.x; 
+        p1_4.y = p1.y; 
+        p1_4.z = p1.z;
+        p1_4.w = 1;  
+        p1_4 = object.transformation * p1_4;
+        p1.x = p1_4.x / p1_4.w; 
+        p1.y = p1_4.y / p1_4.w; 
+        p1.z = p1_4.z / p1_4.w; 
+
+        parser::Vec4f p2_4; 
+        p2_4.x = p2.x; 
+        p2_4.y = p2.y; 
+        p2_4.z = p2.z;
+        p2_4.w = 1;  
+        p2_4 = object.transformation * p2_4;
+        p2.x = p2_4.x / p2_4.w; 
+        p2.y = p2_4.y / p2_4.w; 
+        p2.z = p2_4.z / p2_4.w; 
+
+        
+
+        parser::Vec4f p3_4; 
+        p3_4.x = p3.x; 
+        p3_4.y = p3.y; 
+        p3_4.z = p3.z;
+        p3_4.w = 1;  
+        p3_4 = object.transformation * p3_4;
+        p3.x = p3_4.x / p3_4.w; 
+        p3.y = p3_4.y / p3_4.w; 
+        p3.z = p3_4.z / p3_4.w; 
+        if( ray_triangle_intersection(ray , p1 , p2 , p3 , normal , temp_intersection_point) )
+        {
+            normal = parser::normalize(normal);
+            
+            hit_points.push_back(temp_intersection_point);
+            normals.push_back(normal);
+        }*/
     }
     if( hit_points.size() == 0 )
     {
@@ -402,9 +486,17 @@ static bool calculate_intersection(parser::Scene& scene ,parser::Mesh& object ,c
     
 }
 // a sphere intersection 
-static bool calculate_intersection(parser::Scene& scene ,parser::Sphere& object , const Ray & ray , parser::Vec3f & intersection_normal ,  parser::Vec3f & intersection_point  )
+static bool calculate_intersection(parser::Scene& scene ,parser::Sphere& object , const Ray & ray , parser::Vec3f & intersection_normal ,  parser::Vec3f & intersection_point , bool is_shadow_rays_active )
 {
-    parser::Vec3f center = parser::Vec3f(scene.vertex_data[object.center_vertex_id-1].x , scene.vertex_data[object.center_vertex_id-1 ].y , scene.vertex_data[object.center_vertex_id-1].z );
+    //motion blur
+    if( !is_shadow_rays_active )
+    {
+        object.current_motion_blur.x = ray.time_parameter * object.motion_blur.x;
+        object.current_motion_blur.y = ray.time_parameter * object.motion_blur.y;
+        object.current_motion_blur.z = ray.time_parameter * object.motion_blur.z;
+    
+    }
+    parser::Vec3f center = parser::Vec3f(scene.vertex_data[object.center_vertex_id-1].x + object.current_motion_blur.x , scene.vertex_data[object.center_vertex_id-1 ].y + object.current_motion_blur.y , scene.vertex_data[object.center_vertex_id-1].z + object.current_motion_blur.z);
     bool is_ray_intersected = ray_sphere_intersection( ray , object , center ,  intersection_normal ,   intersection_point );
     return is_ray_intersected; 
 }
@@ -483,8 +575,15 @@ static bool calculate_intersection(parser::Scene& scene ,parser::Triangle& objec
     return false;
 }
 //a mesh instance intersection 
-static bool calculate_intersection(parser::Scene& scene ,parser::MeshInstance& object ,const Ray & ray , parser::Vec3f & intersection_normal ,  parser::Vec3f & intersection_point  )
+static bool calculate_intersection(parser::Scene& scene ,parser::MeshInstance& object ,const Ray & ray , parser::Vec3f & intersection_normal ,  parser::Vec3f & intersection_point , bool is_shadow_rays_active )
 {
+   if( !is_shadow_rays_active )
+    {
+        object.current_motion_blur.x = ray.time_parameter * object.motion_blur.x;
+        object.current_motion_blur.y = ray.time_parameter * object.motion_blur.y;
+        object.current_motion_blur.z = ray.time_parameter * object.motion_blur.z;
+    
+    }
     std::vector<parser::Vec3f> hit_points; // there can be multiple hitpoints for an object 
     std::vector<parser::Vec3f> normals; 
     std::vector<parser::Face> faces; 
@@ -518,9 +617,9 @@ static bool calculate_intersection(parser::Scene& scene ,parser::MeshInstance& o
     for (size_t i = 0; i < object.mesh_ptr->faces.size(); i++)
     {
         //get points
-        parser::Vec3f p1 = parser::Vec3f( scene.vertex_data[ (object.mesh_ptr->faces[i].v0_id-1)    ].x , scene.vertex_data[ (object.mesh_ptr->faces[i].v0_id-1)    ].y , scene.vertex_data[ (object.mesh_ptr->faces[i].v0_id-1)  ].z); 
-        parser::Vec3f p2 = parser::Vec3f( scene.vertex_data[ (object.mesh_ptr->faces[i].v1_id-1)   ].x , scene.vertex_data[ (object.mesh_ptr->faces[i].v1_id-1)  ].y , scene.vertex_data[ (object.mesh_ptr->faces[i].v1_id-1)   ].z);
-        parser::Vec3f p3 = parser::Vec3f( scene.vertex_data[ (object.mesh_ptr->faces[i].v2_id-1)   ].x , scene.vertex_data[ (object.mesh_ptr->faces[i].v2_id-1)    ].y , scene.vertex_data[ (object.mesh_ptr->faces[i].v2_id-1)   ].z);
+        parser::Vec3f p1 = parser::Vec3f( scene.vertex_data[ (object.mesh_ptr->faces[i].v0_id-1)    ].x + object.current_motion_blur.x, scene.vertex_data[ (object.mesh_ptr->faces[i].v0_id-1)    ].y  + object.current_motion_blur.y , scene.vertex_data[ (object.mesh_ptr->faces[i].v0_id-1)  ].z + object.current_motion_blur.z); 
+        parser::Vec3f p2 = parser::Vec3f( scene.vertex_data[ (object.mesh_ptr->faces[i].v1_id-1)   ].x + object.current_motion_blur.x, scene.vertex_data[ (object.mesh_ptr->faces[i].v1_id-1)  ].y  + object.current_motion_blur.y, scene.vertex_data[ (object.mesh_ptr->faces[i].v1_id-1)   ].z +  object.current_motion_blur.z);
+        parser::Vec3f p3 = parser::Vec3f( scene.vertex_data[ (object.mesh_ptr->faces[i].v2_id-1)   ].x + object.current_motion_blur.x, scene.vertex_data[ (object.mesh_ptr->faces[i].v2_id-1)    ].y + object.current_motion_blur.y, scene.vertex_data[ (object.mesh_ptr->faces[i].v2_id-1)   ].z  + object.current_motion_blur.z);
 
         parser::Vec3f normal = parser::normalize(parser::cross((p2-p1) , (p3-p1)) );
         #ifdef DEBUG 
@@ -601,6 +700,7 @@ static bool calculate_intersection(parser::Scene& scene ,parser::MeshInstance& o
         
     
 }
+
 static bool ray_object_intersection( const Ray & ray , parser::Scene & scene , parser::Vec3f &hitpoint , parser::Vec3f & normal , parser::Material &material ,   int &  prev_object_id  , bool is_shadow_rays_active  )
 {
     std::vector<parser::Vec3f> hit_points;
@@ -616,6 +716,7 @@ static bool ray_object_intersection( const Ray & ray , parser::Scene & scene , p
 
     int object_id = 0; 
 
+    // before eveythin calculate the t of the ray for hitpoint
     while( true )
     {
         // if all done s
@@ -633,7 +734,7 @@ static bool ray_object_intersection( const Ray & ray , parser::Scene & scene , p
         while( mesh_count < scene.meshes.size())
         {
             object_id = mesh_count + sphere_count + triangle_count; // give every object unique id 
-            is_intersected_with_this_object = calculate_intersection(scene , scene.meshes[mesh_count] , ray , intersection_normal ,   intersection_point );
+            is_intersected_with_this_object = calculate_intersection(scene , scene.meshes[mesh_count] , ray , intersection_normal ,   intersection_point , is_shadow_rays_active );
             if( is_intersected_with_this_object && object_id != prev_object_id ) // the second clause is for shadow rays in order not the intersect itself
             {
                 hit_points.push_back(intersection_point ); 
@@ -646,7 +747,7 @@ static bool ray_object_intersection( const Ray & ray , parser::Scene & scene , p
         }
         while( sphere_count < scene.spheres.size())
         {
-            is_intersected_with_this_sphere = calculate_intersection(scene , scene.spheres[sphere_count] ,  ray ,   intersection_normal , intersection_point );
+            is_intersected_with_this_sphere = calculate_intersection(scene , scene.spheres[sphere_count] ,  ray ,   intersection_normal , intersection_point , is_shadow_rays_active );
             object_id = mesh_count + sphere_count + triangle_count; // give every object unique id 
             if( is_intersected_with_this_sphere && object_id != prev_object_id  ) // the second clause is for shadow rays in order not the intersect itself
             {
@@ -680,7 +781,7 @@ static bool ray_object_intersection( const Ray & ray , parser::Scene & scene , p
         while( mesh_instances_count < scene.mesh_instances.size())
         {
             object_id = mesh_count + sphere_count + triangle_count + mesh_instances_count; // give every object unique id 
-            is_intersected_with_this_object = calculate_intersection(scene , scene.mesh_instances[mesh_instances_count] , ray , intersection_normal ,   intersection_point );
+            is_intersected_with_this_object = calculate_intersection(scene , scene.mesh_instances[mesh_instances_count] , ray , intersection_normal ,   intersection_point  , is_shadow_rays_active);
             if( is_intersected_with_this_object && object_id != prev_object_id ) // the second clause is for shadow rays in order not the intersect itself
             {
                 hit_points.push_back(intersection_point ); 
@@ -726,7 +827,7 @@ static bool ray_object_intersection( const Ray & ray , parser::Scene & scene , p
 
 }
 
-static bool calculate_second_hitpoint_in_same_object( parser::Scene & scene , const Ray & refracted_ray ,  parser::Vec3f & hit_point , parser::Vec3f & normal  , int & object_id , parser::Vec3f & second_hit_point  , parser::Vec3f & second_normal   )
+static bool calculate_second_hitpoint_in_same_object( parser::Scene & scene , const Ray & refracted_ray ,  parser::Vec3f & hit_point , parser::Vec3f & normal  , int & object_id , parser::Vec3f & second_hit_point  , parser::Vec3f & second_normal , bool  is_shadow_rays_active   )
 {
     // fetch the object with 
     // 1 - meshes
@@ -735,10 +836,12 @@ static bool calculate_second_hitpoint_in_same_object( parser::Scene & scene , co
     parser::Mesh mesh;
     parser::Sphere sphere;
     parser::Triangle triangle;
+    parser::MeshInstance mesh_instance;
+
     bool if_mesh = false; 
     bool if_sphere = false; 
     bool if_triangle = false; 
-
+    bool if_mesh_instance = false; 
     if( object_id < scene.meshes.size()   )
     {
         if_mesh = true; 
@@ -752,13 +855,17 @@ static bool calculate_second_hitpoint_in_same_object( parser::Scene & scene , co
     else if( object_id < scene.meshes.size() +  scene.spheres.size() + scene.triangles.size() )
     {
         if_triangle = true; 
-        triangle = scene.triangles[object_id - scene.meshes.size()   - scene.triangles.size()  ];
+        triangle = scene.triangles[object_id - scene.meshes.size()   - scene.spheres.size()  ];
     }
-    
+    else if(object_id < scene.meshes.size() +  scene.spheres.size() + scene.triangles.size() + scene.mesh_instances.size() )
+    {
+        if_mesh_instance = true;
+        mesh_instance = scene.mesh_instances[object_id - scene.meshes.size()   - scene.spheres.size()  - scene.triangles.size() ];
+    }
     if( if_mesh )
     {
 
-        bool is_intersection = calculate_intersection(scene, mesh , refracted_ray , second_normal , second_hit_point);
+        bool is_intersection = calculate_intersection(scene, mesh , refracted_ray , second_normal , second_hit_point , is_shadow_rays_active);
         if(!is_intersection)
         {
             //std::cout << " cannot found second hit_point in mesh" << std::endl;
@@ -769,7 +876,7 @@ static bool calculate_second_hitpoint_in_same_object( parser::Scene & scene , co
     else if( if_sphere )
     {
 
-        bool is_intersection = calculate_intersection(scene, sphere , refracted_ray , second_normal , second_hit_point);
+        bool is_intersection = calculate_intersection(scene, sphere , refracted_ray , second_normal , second_hit_point , is_shadow_rays_active);
         if(!is_intersection)
         {
             //std::cout << " cannot found second hit_point in sphere" << std::endl;
@@ -789,6 +896,16 @@ static bool calculate_second_hitpoint_in_same_object( parser::Scene & scene , co
         }
         return true;  
     }
+    else if( if_mesh_instance)
+    {
+        bool is_intersection = calculate_intersection(scene, mesh_instance , refracted_ray , second_normal , second_hit_point , is_shadow_rays_active);
+        if(!is_intersection)
+        {
+            return false;
+
+        }
+        return true;  
+    }
     else
     {
         std::cout <<  " a problem  has occured " <<  std::endl; 
@@ -799,7 +916,7 @@ static bool calculate_second_hitpoint_in_same_object( parser::Scene & scene , co
 
 
 //for bvh
-static bool ray_object_intersection( const Ray & ray , parser::Scene & scene , parser::Vec3f &hitpoint , parser::Vec3f & normal , parser::Material &material ,   int &  prev_object_id  , bool is_shadow_rays_active, int & object_id  )
+/*static bool ray_object_intersection( const Ray & ray , parser::Scene & scene , parser::Vec3f &hitpoint , parser::Vec3f & normal , parser::Material &material ,   int &  prev_object_id  , bool is_shadow_rays_active, int & object_id  )
 {
     std::vector<parser::Vec3f> hit_points;
     std::vector<parser::Vec3f> normals;
@@ -810,26 +927,42 @@ static bool ray_object_intersection( const Ray & ray , parser::Scene & scene , p
     bool is_intersected_with_this_object = false; 
     if( scene.meshes.size() > object_id)
     {
-        is_intersected_with_this_object = calculate_intersection(scene , scene.meshes[object_id ] , ray , hitpoint ,   normal );
+        if( prev_object_id != object_id)
+        {
+        is_intersected_with_this_object = calculate_intersection(scene , scene.meshes[object_id ] , ray , normal , hitpoint );
         material = scene.materials[scene.meshes[object_id].material_id - 1 ];
+        }
+       
     }
     else if(scene.spheres.size() + scene.meshes.size() > object_id  )
     {
-        is_intersected_with_this_object = calculate_intersection(scene , scene.spheres[object_id - scene.meshes.size()] , ray , hitpoint ,   normal );
+        if( prev_object_id != object_id)
+        {
+        is_intersected_with_this_object = calculate_intersection(scene , scene.spheres[object_id - scene.meshes.size()] , ray , normal , hitpoint);
         material = scene.materials[scene.spheres[object_id - scene.meshes.size()].material_id  - 1 ];
 
+        }
+       
     }
     else if( scene.triangles.size() + scene.spheres.size() + scene.meshes.size() > object_id )
     {
-        is_intersected_with_this_object = calculate_intersection(scene , scene.triangles[object_id  - scene.meshes.size() - scene.spheres.size() ] , ray , hitpoint ,   normal );
-        material = scene.materials[scene.triangles[object_id  - scene.meshes.size() - scene.spheres.size()].material_id  - 1 ];
+        if( prev_object_id != object_id)
+        {
+            is_intersected_with_this_object = calculate_intersection(scene , scene.triangles[object_id  - scene.meshes.size() - scene.spheres.size() ] , ray , normal , hitpoint );
+            material = scene.materials[scene.triangles[object_id  - scene.meshes.size() - scene.spheres.size()].material_id  - 1 ];
+        }
+
 
     }
     else if( scene.triangles.size() + scene.spheres.size() + scene.meshes.size() + scene.mesh_instances.size() > object_id )
     {
-        is_intersected_with_this_object = calculate_intersection(scene , scene.mesh_instances[object_id  - scene.meshes.size()- scene.spheres.size() - scene.mesh_instances.size() ] , ray , hitpoint ,   normal );
-        material = scene.materials[scene.mesh_instances[object_id  - scene.meshes.size()- scene.spheres.size() - scene.mesh_instances.size()].material_id  - 1 ];
+        if( prev_object_id != object_id )
+        {
+              is_intersected_with_this_object = calculate_intersection(scene , scene.mesh_instances[object_id  - scene.meshes.size()- scene.spheres.size() - scene.mesh_instances.size() ] , ray , normal , hitpoint );
+            material = scene.materials[scene.mesh_instances[object_id  - scene.meshes.size()- scene.spheres.size() - scene.mesh_instances.size()].material_id  - 1 ];
 
+        }
+      
     }
     if( !is_intersected_with_this_object)
     {
@@ -841,4 +974,4 @@ static bool ray_object_intersection( const Ray & ray , parser::Scene & scene , p
     }
     
     return true; 
-}
+}*/

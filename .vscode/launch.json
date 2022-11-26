@@ -14,7 +14,7 @@
                 "/home/batu/Desktop/RayTracer/RayTracer/Header",
                 "/home/batu/Desktop/RayTracer/RayTracer/System_Files/support_files"
             ],
-            "args": ["/home/batu/Desktop/RayTracer/RayTracer/System_Files/hw2/inputs/ellipsoids.xml"],
+            "args": ["/home/batu/Desktop/RayTracer/RayTracer/hw3/inputs/cornellbox_boxes_dynamic.xml"],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",
             "environment": [],

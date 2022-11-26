@@ -38,5 +38,8 @@ class Ray
     //Ray( parser::Vec3f origin , parser::Vec3f  p2  );
     parser::Vec3f origin;
     parser::Vec3f direction;
+    int sample_no;
+    float time_parameter = 0; 
+    void generate_time();
 };
 

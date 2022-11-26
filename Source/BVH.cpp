@@ -127,6 +127,10 @@ std::vector< BVH::BoundingBox > BVH::generate_bounding_boxes(parser::Scene &scen
         for (size_t j = 0; j < scene.meshes[i].faces.size(); j++)
         {
             //get points
+            if(  !( scene.meshes[i].faces[j].v0_id-1 >= 0  && scene.meshes[i].faces[j].v1_id-1 >= 0  && scene.meshes[i].faces[j].v2_id-1 >= 0 ) )
+            {
+                continue; 
+            }
             parser::Vec3f p1 = parser::Vec3f( scene.vertex_data[ (scene.meshes[i].faces[j].v0_id-1)    ].x , scene.vertex_data[ (scene.meshes[i].faces[j].v0_id-1)    ].y , scene.vertex_data[ (scene.meshes[i].faces[j].v0_id-1)  ].z); 
             parser::Vec3f p2 = parser::Vec3f( scene.vertex_data[ (scene.meshes[i].faces[j].v1_id-1)   ].x , scene.vertex_data[ (scene.meshes[i].faces[j].v1_id-1)  ].y , scene.vertex_data[ (scene.meshes[i].faces[j].v1_id-1)   ].z);
             parser::Vec3f p3 = parser::Vec3f( scene.vertex_data[ (scene.meshes[i].faces[j].v2_id-1)   ].x , scene.vertex_data[ (scene.meshes[i].faces[j].v2_id-1)    ].y , scene.vertex_data[ (scene.meshes[i].faces[j].v2_id-1)   ].z);
@@ -444,11 +448,138 @@ std::vector< BVH::BoundingBox > BVH::generate_bounding_boxes(parser::Scene &scen
         //push the object
        bounding_box_vec.push_back(box);
     }
+    //for each mesh instance
+    for (size_t i = 0; i < scene.mesh_instances.size(); i++)
+    {
+        float x_min = INFINITY;
+        float x_max = -INFINITY;
+
+        float y_min = INFINITY;
+        float y_max = -INFINITY;
+
+        float z_min = INFINITY;
+        float z_max= -INFINITY;
+
+        
+        for (size_t j = 0; j < scene.mesh_instances[i].mesh_ptr->faces.size(); j++)
+        {
+            //get points
+            parser::Vec3f p1 = parser::Vec3f( scene.vertex_data[ (scene.mesh_instances[i].mesh_ptr->faces[j].v0_id-1)    ].x , scene.vertex_data[ (scene.mesh_instances[i].mesh_ptr->faces[j].v0_id-1)    ].y , scene.vertex_data[ (scene.mesh_instances[i].mesh_ptr->faces[j].v0_id-1)  ].z); 
+            parser::Vec3f p2 = parser::Vec3f( scene.vertex_data[ (scene.mesh_instances[i].mesh_ptr->faces[j].v1_id-1)   ].x , scene.vertex_data[ (scene.mesh_instances[i].mesh_ptr->faces[j].v1_id-1)  ].y , scene.vertex_data[ (scene.mesh_instances[i].mesh_ptr->faces[j].v1_id-1)   ].z);
+            parser::Vec3f p3 = parser::Vec3f( scene.vertex_data[ (scene.mesh_instances[i].mesh_ptr->faces[j].v2_id-1)   ].x , scene.vertex_data[ (scene.mesh_instances[i].mesh_ptr->faces[j].v2_id-1)    ].y , scene.vertex_data[ (scene.mesh_instances[i].mesh_ptr->faces[j].v2_id-1)   ].z);
+
+            //transformation 
+            parser::Vec4f temp1; temp1.x = p1.x; temp1.y = p1.y; temp1.z = p1.z;temp1.w = 1; 
+            parser::Vec4f temp2; temp2.x = p2.x; temp2.y = p2.y; temp2.z = p2.z;temp2.w = 1;
+            parser::Vec4f temp3; temp3.x = p3.x; temp3.y = p3.y; temp3.z = p3.z;temp3.w = 1;
+
+            temp1 = scene.mesh_instances[i].transformation * temp1 ; 
+            temp2 = scene.mesh_instances[i].transformation * temp2 ; 
+            temp3 = scene.mesh_instances[i].transformation * temp3 ; 
+
+            p1.x = temp1.x / temp1.w;
+            p1.y = temp1.y / temp1.w;
+            p1.z = temp1.z / temp1.w;
+
+            p2.x = temp2.x / temp2.w;
+            p2.y = temp2.y / temp2.w;
+            p2.z = temp2.z / temp2.w;
+
+            p3.x = temp3.x / temp3.w;
+            p3.y = temp3.y / temp3.w;
+            p3.z = temp3.z / temp3.w;
+            
+            
+
+            // update box
+            //p1        
+            if( p1.x >  x_max )
+            {
+                x_max = p1.x; 
+            }
+            if( p1.x <  x_min )
+            {
+                x_min = p1.x; 
+            }
+            if( p1.y >  y_max )
+            {
+                y_max = p1.y; 
+            }
+            if( p1.y <  y_min )
+            {
+                y_min = p1.y; 
+            }
+            if( p1.z >  z_max )
+            {
+                z_max = p1.z; 
+            }
+            if( p1.z <  z_min )
+            {
+                z_min = p1.z; 
+            }
+            // p2 
+             if( p2.x >  x_max )
+            {
+                x_max = p2.x; 
+            }
+            if( p2.x <  x_min )
+            {
+                x_min = p2.x; 
+            }
+            if( p2.y >  y_max )
+            {
+                y_max = p2.y; 
+            }
+            if( p2.y <  y_min )
+            {
+                y_min = p2.y; 
+            }
+            if( p2.z >  z_max )
+            {
+                z_max = p2.z; 
+            }
+            if( p2.z <  z_min )
+            {
+                z_min = p2.z; 
+            }
+            //p3 
+             if( p3.x >  x_max )
+            {
+                x_max = p3.x; 
+            }
+            if( p3.x <  x_min )
+            {
+                x_min = p3.x; 
+            }
+            if( p3.y >  y_max )
+            {
+                y_max = p3.y; 
+            }
+            if( p3.y <  y_min )
+            {
+                y_min = p3.y; 
+            }
+            if( p3.z >  z_max )
+            {
+                z_max = p3.z; 
+            }
+            if( p3.z <  z_min )
+            {
+                z_min = p3.z; 
+            }
+        }
+        //create a box
+        BVH::BoundingBox box(x_min , x_max , y_min , y_max , z_min , z_max);
+        int object_id = i + scene.meshes.size() + scene.spheres.size() + scene.triangles.size();
+        //push the object
+        box.object_id = object_id; 
+        bounding_box_vec.push_back(box);        
+    }
     return bounding_box_vec; 
 }
 
 
-/*void BVH::setup_bvh_tree( BVH::BoundingBoxTree * & node , int splitting_axis    )
+void BVH::setup_bvh_tree( BVH::BoundingBoxTree * & node , int splitting_axis    )
 {
    
     if( node->box_vec.size() ==  1 ) // if leaf node  
@@ -463,82 +594,16 @@ std::vector< BVH::BoundingBox > BVH::generate_bounding_boxes(parser::Scene &scen
         node = NULL; 
         return;
     }
-    //spceial case
-    else if( node->box_vec.size() == 2 )
-    {
-        //do a special treatment
-        
-        //check for x
-        BVH::BoundingBox b1;maximum_radius_multiplier
-        BVH::BoundingBox b2;
-        b2 = node->box_vec[1];
-        node->left = new BVH::BoundingBoxTree; 
-        node->right = new BVH::BoundingBoxTree; 
-        generate_global_bounding_box(node->left);
-        generate_global_bounding_box(node->right); 
-        //separate x
-        if( b1.x_left > b2.x_right )
-        {
-            node->left->box_vec.push_back(b2);
-            node->right->box_vec.push_back(b1);
-
-        }
-        else if( b2.x_left > b1.x_right)
-        {
-            node->left->box_vec.push_back(b1);
-            node->right->box_vec.push_back(b2);
-        }
-        if( b1.y_down > b2.y_up )
-        {
-            node->left->box_vec.push_back(b2);
-            node->right->box_vec.push_back(b1);
-
-        }
-        else if( b2.y_down > b1.y_up)
-        {
-            node->left->box_vec.push_back(b1);
-            node->right->box_vec.push_back(b2);
-        }
-        if( b1.z_near > b2.z_far )
-        {
-            node->left->box_vec.push_back(b2);
-            node->right->box_vec.push_back(b1);
-
-        }
-        else if( b2.z_near > b1.z_far)
-        {
-            node->left->box_vec.push_back(b1);
-            node->right->box_vec.push_back(b2);
-        }
-        // handled leaf and empty node above
-        setup_bvh_tree( node->left , splitting_axis  );
-        setup_bvh_tree( node->right , splitting_axis);
-    }
-
-
-    if( node == NULL )
-    {
-        exit(1); 
-    }
-
     //initialzie  left and right
     node->left = new BVH::BoundingBoxTree; 
     node->right = new BVH::BoundingBoxTree; 
-    generate_global_bounding_box(node->left);
-    generate_global_bounding_box(node->right); 
     //sort all the objects in that axis
     if( splitting_axis == 0 )
     {
 
-         std::vector<float> mid_points; 
-        for (size_t i = 0; i < node->box_vec.size(); i++)
-        {
-            float mid_far_p = node->box_vec[i].x_right; 
-            mid_points.push_back(mid_far_p );
-        }
-        std::sort(mid_points.begin() , mid_points.end() );
+
     
-        float mid_point_x = mid_points[ mid_points.size() / 2 ];
+        float mid_point_x = (node->global_bounding_box.x_left + node->global_bounding_box.x_right) / 2;
           
         for (size_t i = 0; i < node->box_vec.size(); i++)
         {
@@ -549,32 +614,22 @@ std::vector< BVH::BoundingBox > BVH::generate_bounding_boxes(parser::Scene &scen
                 node->left->box_vec.push_back(node->box_vec[i]);
             }
             // up
-            else if(b.x_left >= mid_point_x && b.x_right >= mid_point_x  )
+            else
             {
                 node->right->box_vec.push_back(node->box_vec[i]);
             }
             
         }
-        node->left->global_bounding_box = node->global_bounding_box;
-        node->right->global_bounding_box = node->global_bounding_box;
-        
-        node->left->global_bounding_box.x_right = mid_point_x;
-        node->right->global_bounding_box.x_left = mid_point_x;
+        generate_global_bounding_box(node->left);
+        generate_global_bounding_box(node->right);
+
         
         splitting_axis = 1; 
     }
     else if( splitting_axis == 1 )
     {
 
-         std::vector<float> mid_points; 
-        for (size_t i = 0; i < node->box_vec.size(); i++)
-        {
-            float mid_far_p = node->box_vec[i].y_up; 
-            mid_points.push_back(mid_far_p );
-        }
-        std::sort(mid_points.begin() , mid_points.end() );
-    
-        float mid_point_y = mid_points[ mid_points.size() / 2 ];
+        float mid_point_y = (node->global_bounding_box.y_down + node->global_bounding_box.y_up) / 2;
         for (size_t i = 0; i < node->box_vec.size(); i++)
         {
             BVH::BoundingBox b = node->box_vec[i];
@@ -584,18 +639,15 @@ std::vector< BVH::BoundingBox > BVH::generate_bounding_boxes(parser::Scene &scen
                 node->left->box_vec.push_back(node->box_vec[i]);
             }
             // up
-            else if(b.y_down >= mid_point_y && b.y_up >= mid_point_y  )
+            else
             {
                 node->right->box_vec.push_back(node->box_vec[i]);
             }
             
            
         }
-        node->left->global_bounding_box = node->global_bounding_box;
-        node->right->global_bounding_box = node->global_bounding_box;
-        
-        node->left->global_bounding_box.y_up = mid_point_y;
-        node->right->global_bounding_box.y_down = mid_point_y;
+        generate_global_bounding_box(node->left);
+        generate_global_bounding_box(node->right);
 
         splitting_axis = 2; 
 
@@ -603,16 +655,9 @@ std::vector< BVH::BoundingBox > BVH::generate_bounding_boxes(parser::Scene &scen
     }
     else if( splitting_axis == 2 ) // splitting axis = 2 
     {
-        //get midpoints and sort
-        std::vector<float> mid_points; 
-        for (size_t i = 0; i < node->box_vec.size(); i++)
-        {
-            float mid_far_p = node->box_vec[i].z_far; 
-            mid_points.push_back(mid_far_p );
-        }
-        std::sort(mid_points.begin() , mid_points.end() );
+
     
-        float mid_point_z = mid_points[ mid_points.size() / 2 ];
+        float mid_point_z = (node->global_bounding_box.z_far + node->global_bounding_box.z_near) / 2;
 
         for (size_t i = 0; i < node->box_vec.size(); i++)
         {
@@ -623,27 +668,25 @@ std::vector< BVH::BoundingBox > BVH::generate_bounding_boxes(parser::Scene &scen
                 node->left->box_vec.push_back(node->box_vec[i]);
             }
             // up
-            else if(b.z_near >= mid_point_z && b.z_far >= mid_point_z  )
+            else
             {
                 node->right->box_vec.push_back(node->box_vec[i]);
             }
             
 
         }
-        node->left->global_bounding_box = node->global_bounding_box;
-        node->right->global_bounding_box = node->global_bounding_box;
-        node->left->global_bounding_box.z_far = mid_point_z;
-        node->right->global_bounding_box.z_near = mid_point_z;
+        generate_global_bounding_box(node->left);
+        generate_global_bounding_box(node->right);
         splitting_axis = 0; 
 
     }
-    
+    std::cout << " 1 ";
     // handled leaf and empty node above
     setup_bvh_tree( node->left , splitting_axis  );
     setup_bvh_tree( node->right , splitting_axis);
 
-}*/
-void BVH::setup_bvh_tree( BVH::BoundingBoxTree * & node , int splitting_axis    )
+}
+/*void BVH::setup_bvh_tree( BVH::BoundingBoxTree * & node , int splitting_axis    )
 {
     if( node->box_vec.size() ==  1 ) // if leaf node  
     {
@@ -680,12 +723,12 @@ void BVH::setup_bvh_tree( BVH::BoundingBoxTree * & node , int splitting_axis    
 
         for (size_t i = 0; i < node->box_vec.size(); i++)
         {
-            if( mid_point > node->box_vec[i].x_left && mid_point > node->box_vec[i].x_right )
+            if( mid_point >= node->box_vec[i].x_left && mid_point >= node->box_vec[i].x_right )
             {
                 node->left->box_vec.push_back( node->box_vec[i]);
                 sep_no[0] = 1;
             }
-            else if(mid_point < node->box_vec[i].x_left && mid_point < node->box_vec[i].x_right )
+            else if(mid_point <= node->box_vec[i].x_left && mid_point <= node->box_vec[i].x_right )
             {
                 node->right->box_vec.push_back( node->box_vec[i]);
                 sep_no[1] = 1;
@@ -714,12 +757,12 @@ void BVH::setup_bvh_tree( BVH::BoundingBoxTree * & node , int splitting_axis    
                 node->mid->box_vec.clear();
                 for (size_t i = 0; i < node->box_vec.size(); i++)
                 {
-                    if( mid_point > node->box_vec[i].x_left && mid_point > node->box_vec[i].x_right )
+                    if( mid_point >= node->box_vec[i].x_left && mid_point >= node->box_vec[i].x_right )
                     {
                         node->left->box_vec.push_back( node->box_vec[i]);
                         sep_no[0] = 1;
                     }
-                    else if(mid_point < node->box_vec[i].x_left && mid_point < node->box_vec[i].x_right )
+                    else if(mid_point <= node->box_vec[i].x_left && mid_point <= node->box_vec[i].x_right )
                     {
                         node->right->box_vec.push_back( node->box_vec[i]);
                         sep_no[1] = 1;
@@ -759,13 +802,13 @@ void BVH::setup_bvh_tree( BVH::BoundingBoxTree * & node , int splitting_axis    
      
         for (size_t i = 0; i < node->box_vec.size(); i++)
         {
-            if( mid_point > node->box_vec[i].y_down && mid_point > node->box_vec[i].y_up )
+            if( mid_point >= node->box_vec[i].y_down && mid_point >= node->box_vec[i].y_up )
             {
                 node->left->box_vec.push_back( node->box_vec[i]);
                 sep_no[0] = 1;
 
             }
-            else if(mid_point < node->box_vec[i].y_down && mid_point < node->box_vec[i].y_up)
+            else if(mid_point <= node->box_vec[i].y_down && mid_point <= node->box_vec[i].y_up)
             {
                 node->right->box_vec.push_back( node->box_vec[i]);
                 sep_no[1] = 1;
@@ -794,13 +837,13 @@ void BVH::setup_bvh_tree( BVH::BoundingBoxTree * & node , int splitting_axis    
                 node->mid->box_vec.clear();
                 for (size_t i = 0; i < node->box_vec.size(); i++)
                 {
-                    if( mid_point > node->box_vec[i].y_down && mid_point > node->box_vec[i].y_up )
+                    if( mid_point >= node->box_vec[i].y_down && mid_point >= node->box_vec[i].y_up )
                     {
                         node->left->box_vec.push_back( node->box_vec[i]);
                         sep_no[0] = 1;
 
                     }
-                    else if(mid_point < node->box_vec[i].y_down && mid_point < node->box_vec[i].y_up)
+                    else if(mid_point <= node->box_vec[i].y_down && mid_point <= node->box_vec[i].y_up)
                     {
                         node->right->box_vec.push_back( node->box_vec[i]);
                         sep_no[1] = 1;
@@ -840,13 +883,13 @@ void BVH::setup_bvh_tree( BVH::BoundingBoxTree * & node , int splitting_axis    
         
         for (size_t i = 0; i < node->box_vec.size(); i++)
         {
-            if( mid_point > node->box_vec[i].z_near && mid_point > node->box_vec[i].z_far )
+            if( mid_point >= node->box_vec[i].z_near && mid_point >= node->box_vec[i].z_far )
             {
                 node->left->box_vec.push_back( node->box_vec[i]);
                 sep_no[0] = 1;
 
             }
-            else if(mid_point < node->box_vec[i].z_near && mid_point < node->box_vec[i].z_far   )
+            else if(mid_point <= node->box_vec[i].z_near && mid_point <= node->box_vec[i].z_far   )
             {
                 node->right->box_vec.push_back( node->box_vec[i]);
                 sep_no[1] = 1;
@@ -876,13 +919,13 @@ void BVH::setup_bvh_tree( BVH::BoundingBoxTree * & node , int splitting_axis    
                 node->mid->box_vec.clear();
                 for (size_t i = 0; i < node->box_vec.size(); i++)
                 {
-                    if( mid_point > node->box_vec[i].z_near && mid_point > node->box_vec[i].z_far )
+                    if( mid_point >= node->box_vec[i].z_near && mid_point >= node->box_vec[i].z_far )
                     {
                         node->left->box_vec.push_back( node->box_vec[i]);
                         sep_no[0] = 1;
 
                     }
-                    else if(mid_point < node->box_vec[i].z_near && mid_point < node->box_vec[i].z_far   )
+                    else if(mid_point <= node->box_vec[i].z_near && mid_point <= node->box_vec[i].z_far   )
                     {
                         node->right->box_vec.push_back( node->box_vec[i]);
                         sep_no[1] = 1;
@@ -923,7 +966,7 @@ void BVH::setup_bvh_tree( BVH::BoundingBoxTree * & node , int splitting_axis    
     setup_bvh_tree( node->right , splitting_axis);
     setup_bvh_tree( node->mid , splitting_axis);
 
-}
+}*/
 void BVH::setup_bvh_head_node( BVH::BoundingBoxTree * & head_node ,   std::vector< BVH::BoundingBox > & global_bounding_box  )
 {
     // all of the elements
@@ -994,15 +1037,15 @@ BVH::BoundingBox BVH::traverse_tree(BVH::BoundingBoxTree * head_node , Ray &ray 
         mid_box = traverse_tree(head_node->mid , ray , object_no_t_pair );
     }
   
-    if( right_box.t < mid_box.t && right_box.t <  left_box.t )
+    if( right_box.t <= mid_box.t && right_box.t <=  left_box.t )
     {
         return  right_box;
     }
-    else if( left_box.t < mid_box.t && left_box.t <  right_box.t )
+    else if( left_box.t <= mid_box.t && left_box.t <=  right_box.t )
     {
         return  left_box;
     }
-    else if( mid_box.t < left_box.t && mid_box.t < right_box.t )
+    else if( mid_box.t <= left_box.t && mid_box.t <= right_box.t )
     {
         return mid_box; 
     }
@@ -1083,5 +1126,25 @@ void BVH::generate_global_bounding_box(BVH::BoundingBoxTree * &  node)
     if( head_node->right != NULL )
     {
         BVH::test_inorder_traversal(head_node->right);
+    }
+}
+
+void BVH::delete_boxes( BVH::BoundingBoxTree * & node )
+{
+    if( node->left == NULL  && node->right == NULL && node->mid == NULL )
+    {
+        delete node;
+    }
+    if( node->left != NULL )
+    {
+        delete_boxes(node->left );
+    }
+    if( node->right != NULL )
+    {
+        delete_boxes(node->right );
+    }
+    if( node->mid != NULL )
+    {
+        delete_boxes(node->mid );
     }
 }

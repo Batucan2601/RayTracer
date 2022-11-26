@@ -23,7 +23,6 @@ namespace BVH
         BoundingBoxTree *mid; 
 
         BoundingBox global_bounding_box; 
-
     };
     //check if bounding box got intersected 
     bool is_bounding_box_intersected( Ray & ray , BoundingBox & box );
@@ -43,7 +42,8 @@ namespace BVH
     // !!!!!!!! 
     // calll only this 
      void generate_BVH_tree(parser::Scene &scene  , BoundingBoxTree * & head_node );
-
+    // delete bo 
+    void delete_boxes( BoundingBoxTree * & node );
     //test
      void test_inorder_traversal(BoundingBoxTree * head_node);
 }

@@ -5,7 +5,8 @@
         "/home/batu/Desktop/RayTracer/RayTracer/Source/**.cpp",
         "/home/batu/Desktop/RayTracer/RayTracer/System_Files/support_files/**.cpp",
         "-o",
-        "${workspaceFolder}/raytracer"
+        "${workspaceFolder}/raytracer",
+        "-fno-stack-protector"
     ],
     "version": "2.0.0",
     "tasks": [

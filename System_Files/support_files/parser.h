@@ -70,6 +70,10 @@ namespace parser
         float near_distance;
         int image_width, image_height;
         std::string image_name;
+        int number_of_samples; 
+        float focus_distance;
+        float aperture_size;
+
     };
 
     struct PointLight
@@ -77,7 +81,23 @@ namespace parser
         Vec3f position;
         Vec3f intensity;
     };
+    struct OrthonormalBasis
+    {
+        Vec3f normal; 
+        Vec3f u;
+        Vec3f v;
 
+    };
+    struct AreaLight
+    {
+        Vec3f position;
+        Vec3f normal;
+        Vec3f radiance;
+        int size; 
+        //orthonormal bases 
+        OrthonormalBasis ortho_basis; 
+    };
+    
     struct Material
     {
         bool is_mirror;
@@ -91,6 +111,7 @@ namespace parser
         float phong_exponent;
         float refraction_index;
         float absorption_index; 
+        float roughness;
     };
 
     struct Face
@@ -111,7 +132,8 @@ namespace parser
         int material_id;
         std::vector<Face> faces;
         std::vector<Matrix> transformations;
-
+        Vec3f motion_blur; 
+        Vec3f current_motion_blur;  // for shadow rays 
         Matrix transformation; 
         Matrix transformation_inverse; 
 
@@ -122,6 +144,8 @@ namespace parser
         bool reset_transform; 
         std::vector<Matrix> transformations;
         int material_id;
+        Vec3f motion_blur;
+        Vec3f current_motion_blur; 
 
         Matrix transformation; 
         Matrix transformation_inverse; 
@@ -141,6 +165,9 @@ namespace parser
         int material_id;
         int center_vertex_id;
         float radius;
+        Vec3f motion_blur; 
+        Vec3f current_motion_blur; 
+
         std::vector<Matrix> transformations;
         std::vector<int> scale_indices; 
 
@@ -157,6 +184,8 @@ namespace parser
         std::vector<Camera> cameras;
         Vec3f ambient_light;
         std::vector<PointLight> point_lights;
+        std::vector<AreaLight> area_lights;
+
         std::vector<Material> materials;
         std::vector<Vec3f> vertex_data;
         std::vector<Mesh> meshes;
@@ -166,6 +195,8 @@ namespace parser
         Transformations transformations;
         //Functions
         void loadFromXml(const std::string &filepath);
+
+        
     };
 
 

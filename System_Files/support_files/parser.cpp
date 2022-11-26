@@ -62,41 +62,119 @@ void parser::Scene::loadFromXml(const std::string &filepath)
     element = root->FirstChildElement("Cameras");
     element = element->FirstChildElement("Camera");
     Camera camera;
-    std::cout << "1 " << std::endl;  
     while (element)
     {
-        auto child = element->FirstChildElement("Position");
-        stream << child->GetText() << std::endl;
-        child = element->FirstChildElement("Gaze");
-        stream << child->GetText() << std::endl;
-        child = element->FirstChildElement("Up");
-        stream << child->GetText() << std::endl;
-        child = element->FirstChildElement("NearPlane");
-        stream << child->GetText() << std::endl;
-        child = element->FirstChildElement("NearDistance");
-        stream << child->GetText() << std::endl;
-        child = element->FirstChildElement("ImageResolution");
-        stream << child->GetText() << std::endl;
-        child = element->FirstChildElement("ImageName");
-        stream << child->GetText() << std::endl;
 
-        stream >> camera.position.x >> camera.position.y >> camera.position.z;
-        stream >> camera.gaze.x >> camera.gaze.y >> camera.gaze.z;
-        stream >> camera.up.x >> camera.up.y >> camera.up.z;
-        stream >> camera.near_plane.x >> camera.near_plane.y >> camera.near_plane.z >> camera.near_plane.w;
-        stream >> camera.near_distance;
-        stream >> camera.image_width >> camera.image_height;
-        stream >> camera.image_name;
+        if( element->Attribute("type") )
+        {
+
+            auto child = element->FirstChildElement("Position");
+            stream << child->GetText() << std::endl;
+            child = element->FirstChildElement("GazePoint");
+            stream << child->GetText() << std::endl;
+            child = element->FirstChildElement("Up");
+            stream << child->GetText() << std::endl;
+            child = element->FirstChildElement("FovY");
+            stream << child->GetText() << std::endl;
+            child = element->FirstChildElement("NearDistance");
+            stream << child->GetText() << std::endl;
+            child = element->FirstChildElement("ImageResolution");
+            stream << child->GetText() << std::endl;
+            child = element->FirstChildElement("ImageName");
+            stream << child->GetText() << std::endl;
+            Vec3f gazePoint;  
+            float fovy; 
+            stream >> camera.position.x >> camera.position.y >> camera.position.z;
+            stream >> gazePoint.x >>  gazePoint.y >>  gazePoint.z;
+            stream >> camera.up.x >> camera.up.y >> camera.up.z;
+            stream >> fovy;
+            stream >> camera.near_distance;
+            stream >> camera.image_width >> camera.image_height;
+            stream >> camera.image_name;
+
+            float t = camera.near_distance *  std::tan( fovy * M_PI/180  / 2 );
+            float bottom = -t;
+            float aspect = camera.image_width /  camera.image_height;
+            float b = -t; 
+            float r = t * aspect; 
+            float l = -r; 
+            camera.near_plane.x = l; 
+            camera.near_plane.y = r;
+            camera.near_plane.z = b; 
+            camera.near_plane.w = t; 
+
+            camera.gaze = parser::normalize( gazePoint - camera.position);
+        }   
+        else
+        {
+            auto child = element->FirstChildElement("Position");
+            stream << child->GetText() << std::endl;
+            child = element->FirstChildElement("Gaze");
+            stream << child->GetText() << std::endl;
+            child = element->FirstChildElement("Up");
+            stream << child->GetText() << std::endl;
+            child = element->FirstChildElement("NearPlane");
+            stream << child->GetText() << std::endl;
+            child = element->FirstChildElement("NearDistance");
+            stream << child->GetText() << std::endl;
+            child = element->FirstChildElement("ImageResolution");
+            stream << child->GetText() << std::endl;
+            child = element->FirstChildElement("ImageName");
+            stream << child->GetText() << std::endl;
+            child = element->FirstChildElement("NumSamples"); //assume square 
+            if (child != NULL )
+            {
+            stream << child->GetText() << std::endl;
+            }
+            else
+            {
+                stream << "1" << std::endl;
+            }
+            child = element->FirstChildElement("FocusDistance"); //assume square 
+            if (child != NULL )
+            {
+            stream << child->GetText() << std::endl;
+            }
+            else
+            {
+                stream << "-1" << std::endl;
+            }
+            child = element->FirstChildElement("ApertureSize"); //assume square 
+            if (child != NULL )
+            {
+            stream << child->GetText() << std::endl;
+            }
+            else
+            {
+                stream << "-1" << std::endl;
+            }
+            stream >> camera.position.x >> camera.position.y >> camera.position.z;
+            stream >> camera.gaze.x >> camera.gaze.y >> camera.gaze.z;
+            stream >> camera.up.x >> camera.up.y >> camera.up.z;
+            stream >> camera.near_plane.x >> camera.near_plane.y >> camera.near_plane.z >> camera.near_plane.w;
+            stream >> camera.near_distance;
+            stream >> camera.image_width >> camera.image_height;
+            stream >> camera.image_name;
+            stream >> camera.number_of_samples;
+            stream >> camera.focus_distance;
+            stream >> camera.aperture_size;
+
+
+        }
+        
 
         cameras.push_back(camera);
         element = element->NextSiblingElement("Camera");
     }
+    std::cout << "2" << std::endl;  
 
     //Get Lights
     element = root->FirstChildElement("Lights");
     auto child = element->FirstChildElement("AmbientLight");
     stream << child->GetText() << std::endl;
     stream >> ambient_light.x >> ambient_light.y >> ambient_light.z;
+
+    //point light 
     element = element->FirstChildElement("PointLight");
     PointLight point_light;
 
@@ -114,6 +192,52 @@ void parser::Scene::loadFromXml(const std::string &filepath)
 
         point_lights.push_back(point_light);
         element = element->NextSiblingElement("PointLight");
+    }
+    // area light
+    element = root->FirstChildElement("Lights");
+    element = element->FirstChildElement("AreaLight");
+    AreaLight area_light;
+    while( element )
+    {
+        child = element->FirstChildElement("Position");
+        stream << child->GetText() << std::endl;
+        child = element->FirstChildElement("Normal");
+        stream << child->GetText() << std::endl;
+        child = element->FirstChildElement("Size");
+        stream << child->GetText() << std::endl;
+        child = element->FirstChildElement("Radiance");
+        stream << child->GetText() << std::endl;
+        stream >> area_light.position.x >> area_light.position.y >> area_light.position.z;
+        stream >> area_light.normal.x >> area_light.normal.y >> area_light.normal.z;
+        stream >> area_light.size;
+        stream >> area_light.radiance.x >> area_light.radiance.y >> area_light.radiance.z;
+
+
+        //calculate ortho basis
+        area_light.ortho_basis.normal = area_light.normal; 
+        // n'
+        if( std::abs(area_light.normal.x) < std::abs(area_light.normal.y) && std::abs(area_light.normal.x) < std::abs(area_light.normal.z))
+        {
+            // x is smallest
+            area_light.ortho_basis.normal.x =  1.0f; 
+        }
+        else if( std::abs(area_light.normal.y) < std::abs(area_light.normal.x) && std::abs(area_light.normal.y) < std::abs(area_light.normal.z))
+        {
+            // y is smallest
+            area_light.ortho_basis.normal.y =  1.0f; 
+        }
+        else
+        {
+            // z is smallest
+            area_light.ortho_basis.normal.z =  1.0f; 
+        }
+        //compute u
+        area_light.ortho_basis.u = parser::normalize(parser::cross(area_light.ortho_basis.normal , area_light.normal ));
+        area_light.ortho_basis.v = parser::normalize(parser::cross(area_light.normal , area_light.ortho_basis.u ));
+        area_lights.push_back(area_light);
+
+        element = element->NextSiblingElement("AreaLight");
+
     }
 
     //Get Materials
@@ -226,12 +350,24 @@ void parser::Scene::loadFromXml(const std::string &filepath)
         {
             material.absorption_index = 0.0f;
         }
+        child = element->FirstChildElement("Roughness");
+        if( child != NULL)
+        {
+            stream << child->GetText() << std::endl;
+            stream >> material.roughness;
+        }
+        else
+        {
+            material.roughness = 0.0f;
+        }
         materials.push_back(material);
         element = element->NextSiblingElement("Material");
     }
     //Get transformations
     element = root->FirstChildElement("Transformations");
-    //Get Scaling
+    if ( element != NULL )
+    {
+   //Get Scaling
     element = element->FirstChildElement("Scaling");
     while( element)
     {
@@ -356,6 +492,8 @@ void parser::Scene::loadFromXml(const std::string &filepath)
     }
     std::cout << " rotation  done " << std::endl;
 
+    }
+ 
     stream.clear();
     //Get VertexData
     element = root->FirstChildElement("VertexData");
@@ -388,12 +526,12 @@ void parser::Scene::loadFromXml(const std::string &filepath)
 
         child = element->FirstChildElement("Faces");
 
-        //chekc for ply
-        const char* ply_path = child->Attribute("plyFile"); 
+        
 
-        if(ply_path == 0 ) // no ply
+        if(!child->Attribute("plyFile")) // no ply
         {
             stream << child->GetText() << std::endl;
+            
             Face face;
             while (!(stream >> face.v0_id).eof())
             {
@@ -403,11 +541,14 @@ void parser::Scene::loadFromXml(const std::string &filepath)
         }        
         else //ply file 
         {
-            happly::PLYData plyIn(ply_path);
+            //chekc for ply
+            const char* base_mesh = child->Attribute("plyFile");
+            std::string base_mesh_str = base_mesh;
+            happly::PLYData plyIn(base_mesh_str);
             std::vector<std::array<double , 3U > > vertex_pos = plyIn.getVertexPositions();
 		    std::vector<std::vector<size_t>> face_indices=  plyIn.getFaceIndices();
             int vertex_data_initial_size = vertex_data.size();
-            
+            std::cout << " enter read " << std::endl; 
             for (size_t i = 0; i < vertex_pos.size(); i++)
             {
                 //add them to vertex_data
@@ -422,11 +563,30 @@ void parser::Scene::loadFromXml(const std::string &filepath)
             //now increase all of the face indicies by vertex_data_initial_size
             for (size_t i = 0; i < face_indices.size(); i++)
             {
-                Face face;
-                face.v0_id = face_indices[i][0] +  vertex_data_initial_size;
-                face.v1_id = face_indices[i][1] + vertex_data_initial_size ;
-                face.v2_id = face_indices[i][2] + vertex_data_initial_size;
-                mesh.faces.push_back(face );
+                if(  face_indices[i].size() == 3 )
+                {
+                    Face face1;
+                    face1.v0_id = face_indices[i][0] +  vertex_data_initial_size + 1;
+                    face1.v1_id = face_indices[i][1] + vertex_data_initial_size  + 1 ;
+                    face1.v2_id = face_indices[i][2] + vertex_data_initial_size + 1;
+                    mesh.faces.push_back(face1 );
+                }
+                else if(face_indices[i].size() == 4  )
+                {
+                    Face face1;
+                    face1.v0_id = face_indices[i][0] +  vertex_data_initial_size + 1;
+                    face1.v1_id = face_indices[i][1] + vertex_data_initial_size  + 1 ;
+                    face1.v2_id = face_indices[i][2] + vertex_data_initial_size + 1;
+                    mesh.faces.push_back(face1 );
+                    Face face2;
+                    face2.v0_id = face_indices[i][0] +  vertex_data_initial_size + 1;
+                    face2.v1_id = face_indices[i][2] + vertex_data_initial_size  + 1 ;
+                    face2.v2_id = face_indices[i][3] + vertex_data_initial_size + 1;
+                    mesh.faces.push_back(face2 );
+                }
+                
+
+
             }
             
             
@@ -472,15 +632,54 @@ void parser::Scene::loadFromXml(const std::string &filepath)
 
             stream.clear();
         }
+        child = element->FirstChildElement("MotionBlur");
+        if( child != NULL )
+        {
+            std::istringstream iss(child->GetText());
+            std::string trans = child->GetText();
+            Vec3f motion_blur ;
+            int count = 0; 
+            while(std::getline(iss , trans , ' '))
+            {
+                if(count == 0 )
+                {
+                    motion_blur.x = std::stof(trans);
+                }
+                else if(count == 1 )
+                {
+                    motion_blur.y = std::stof(trans);
+                }
+                else if(count == 2 )
+                {
+                    motion_blur.z = std::stof(trans);
+                }
+                count++;
+
+                mesh.motion_blur = motion_blur; 
+            }
+
+        }
+        else
+        {
+            mesh.motion_blur.x = 0;
+            mesh.motion_blur.y = 0;
+            mesh.motion_blur.z = 0;
+        }
+        mesh.current_motion_blur.x = 0;
+        mesh.current_motion_blur.y = 0;
+        mesh.current_motion_blur.z = 0;
         meshes.push_back(mesh);
         mesh.faces.clear();
         element = element->NextSiblingElement("Mesh");
+        stream.clear();
     }
     std::cout << "reading meshes done  " << std::endl;  
     stream.clear();
 
 
     //Get Mesh Instances
+
+
     element = root->FirstChildElement("Objects");
     element = element->FirstChildElement("MeshInstance");
     while (element)
@@ -522,7 +721,6 @@ void parser::Scene::loadFromXml(const std::string &filepath)
             while(std::getline(iss , trans , ' '))
             {
                 char first = trans.at(0);
-                std::cout << "substr ==>  " << trans << " " << trans.substr(0,trans.length()) << std::endl; 
                 int no =  std::stoi(trans.substr(1, trans.length()) ) ;
                 if( first == 't') //translate 
                 {
@@ -548,9 +746,45 @@ void parser::Scene::loadFromXml(const std::string &filepath)
             mesh_instance.transformation_inverse =     mesh_instance.transformation.inverse();
             stream.clear();
         }
+        child = element->FirstChildElement("MotionBlur");
+        if( child != NULL )
+        {
+            std::istringstream iss(child->GetText());
+            std::string trans = child->GetText();
+            Vec3f motion_blur ;
+            int count = 0; 
+            while(std::getline(iss , trans , ' '))
+            {
+                if(count == 0 )
+                {
+                    motion_blur.x = std::stof(trans);
+                }
+                else if(count == 1 )
+                {
+                    motion_blur.y = std::stof(trans);
+                }
+                else if(count == 2 )
+                {
+                    motion_blur.z = std::stof(trans);
+                }
+                count++;
+
+                mesh_instance.motion_blur = motion_blur; 
+            }
+
+        }
+        else
+        {
+            mesh_instance.motion_blur.x = 0;
+            mesh_instance.motion_blur.y = 0;
+            mesh_instance.motion_blur.z = 0;
+        }
+        mesh_instance.current_motion_blur.x = 0;
+        mesh_instance.current_motion_blur.y = 0;
+        mesh_instance.current_motion_blur.z = 0;
         mesh_instances.push_back(mesh_instance);
         element = element->NextSiblingElement("MeshInstance");
-    }
+    } 
     std::cout << " mesh instances " << std::endl;
 
     //Get Triangles
@@ -668,7 +902,42 @@ void parser::Scene::loadFromXml(const std::string &filepath)
             sphere.transformation_inverse = sphere.transformation.inverse();
         }
         stream.clear();
-        
+        child = element->FirstChildElement("MotionBlur");
+        if( child != NULL )
+        {
+            std::istringstream iss(child->GetText());
+            std::string trans = child->GetText();
+            Vec3f motion_blur ;
+            int count = 0; 
+            while(std::getline(iss , trans , ' '))
+            {
+                if(count == 0 )
+                {
+                    motion_blur.x = std::stof(trans);
+                }
+                else if(count == 1 )
+                {
+                    motion_blur.y = std::stof(trans);
+                }
+                else if(count == 2 )
+                {
+                    motion_blur.z = std::stof(trans);
+                }
+                count++;
+
+                sphere.motion_blur = motion_blur; 
+            }
+
+        }
+        else
+        {
+            sphere.motion_blur.x = 0;
+            sphere.motion_blur.y = 0;
+            sphere.motion_blur.z = 0;
+        }
+        sphere.current_motion_blur.x = 0;
+        sphere.current_motion_blur.y = 0;
+        sphere.current_motion_blur.z = 0;
         spheres.push_back(sphere);
         element = element->NextSiblingElement("Sphere");
     }
