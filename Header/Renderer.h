@@ -254,7 +254,7 @@ static parser::Vec3f color_pixel(parser::Scene& scene , Ray & ray )
         hit_point = hit_point +  normal * scene.shadow_ray_epsilon;
         // cast  shadow ray
         Ray shadow_ray(hit_point , light_pos );
-
+        shadow_ray.time_parameter = ray.time_parameter;
         
         // else you directly went to a light
         
@@ -333,6 +333,7 @@ static parser::Vec3f color_pixel(parser::Scene& scene , Ray & ray )
         hit_point = hit_point +  normal * scene.shadow_ray_epsilon;
         // cast  shadow ray
         Ray shadow_ray(hit_point , p );
+        shadow_ray.time_parameter = ray.time_parameter;
 
         
         // else you directly went to a light

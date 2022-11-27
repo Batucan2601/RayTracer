@@ -11,7 +11,7 @@
             <NearPlane>-10 10 -10 6</NearPlane>
             <NearDistance>10.01</NearDistance>
             <ImageResolution>750 600</ImageResolution>
-            <NumSamples>4</NumSamples>
+            <NumSamples>16</NumSamples>
             <ImageName>cornellbox_boxes_dynamic.png</ImageName>
         </Camera>
     </Cameras>
@@ -134,6 +134,7 @@
         <MeshInstance id="7" baseMeshId="6" resetTransform="true">
             <Material>5</Material>
             <Transformations>t7 t8 s4 t6</Transformations>
+            <MotionBlur>0 0 -4</MotionBlur>
         </MeshInstance>
     </Objects>
 </Scene>

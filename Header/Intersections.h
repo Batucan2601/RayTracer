@@ -639,7 +639,7 @@ static bool calculate_intersection(parser::Scene& scene ,parser::MeshInstance& o
         parser::Vec3f temp_intersection_point(0.0f , 0.0f , 0.f );
         if( ray_triangle_intersection(inv_ray , p1 , p2 , p3 , normal , temp_intersection_point) )
         {
-            //if hit  multiply bacck with transformation 
+             //if hit  multiply bacck with transformation 
             parser::Vec4f temp_intersection_real_coord;
             temp_intersection_real_coord.x = temp_intersection_point.x;
             temp_intersection_real_coord.y =  temp_intersection_point.y;
@@ -661,6 +661,43 @@ static bool calculate_intersection(parser::Scene& scene ,parser::MeshInstance& o
             normal.x = normal_real_cord.x / normal_real_cord.w;
             normal.y = normal_real_cord.y / normal_real_cord.w;
             normal.z = normal_real_cord.z / normal_real_cord.w;
+
+            normal = parser::normalize(normal);
+
+            parser::Vec4f p1_4; 
+            p1_4.x = p1.x; 
+            p1_4.y = p1.y; 
+            p1_4.z = p1.z;
+            p1_4.w = 1;  
+            p1_4 = object.transformation * p1_4;
+            p1.x = p1_4.x / p1_4.w; 
+            p1.y = p1_4.y / p1_4.w; 
+            p1.z = p1_4.z / p1_4.w; 
+
+            parser::Vec4f p2_4; 
+            p2_4.x = p2.x; 
+            p2_4.y = p2.y; 
+            p2_4.z = p2.z;
+            p2_4.w = 1;  
+            p2_4 = object.transformation * p2_4;
+            p2.x = p2_4.x / p2_4.w; 
+            p2.y = p2_4.y / p2_4.w; 
+            p2.z = p2_4.z / p2_4.w; 
+
+            
+
+            parser::Vec4f p3_4; 
+            p3_4.x = p3.x; 
+            p3_4.y = p3.y; 
+            p3_4.z = p3.z;
+            p3_4.w = 1;  
+            p3_4 = object.transformation * p3_4;
+            p3.x = p3_4.x / p3_4.w; 
+            p3.y = p3_4.y / p3_4.w; 
+            p3.z = p3_4.z / p3_4.w; 
+
+            normal = parser::normalize( parser::cross(p2 - p1 , p3 - p1) );
+
             hit_points.push_back(temp_intersection_point);
             normals.push_back(normal);
             faces.push_back(object.mesh_ptr->faces[i]);

@@ -708,8 +708,10 @@ void parser::Scene::loadFromXml(const std::string &filepath)
         }
 
         child = element->FirstChildElement("Material");
+        stream.clear();
         stream << child->GetText() << std::endl;
-        stream >> mesh_instance.material_id;
+        std::cout << child->GetText() << std::endl; 
+        mesh_instance.material_id = std::stoi(child->GetText());
 
 
         child = element->FirstChildElement("Transformations");
