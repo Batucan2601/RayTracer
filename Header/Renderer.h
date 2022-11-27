@@ -62,7 +62,6 @@ static void generate_image(parser::Scene & scene)
                 
                 // initialize the ray
                 parser::Vec3f current_pixel_world_space =  (starting_point_parser +  ( parser::Vec3f( interval_row.x ,  interval_row.y ,  interval_row.z) * (float)x )  )  +   ( parser::Vec3f( interval_col.x ,  interval_col.y ,  interval_col.z) * (float )y  )  ; 
-
                 
                 if( num_samples_sqrt > 1 )
                 {
@@ -87,7 +86,6 @@ static void generate_image(parser::Scene & scene)
                             ray.sample_no = j * k + k; 
                             ray.generate_time();
                             color = color +  color_pixel(scene  , ray);
-
 
                         }
                         
@@ -391,8 +389,6 @@ static parser::Vec3f color_pixel(parser::Scene& scene , Ray & ray )
         
          
         color =  color + diffuse  + specular  ; 
-         
-    
 
     }
     
