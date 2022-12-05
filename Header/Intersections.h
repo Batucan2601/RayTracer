@@ -279,7 +279,7 @@ static bool ray_sphere_intersection(const Ray& ray ,  parser::Sphere& sphere ,  
 
 }
 //a mesh intersection 
-static bool calculate_intersection(parser::Scene& scene ,parser::Mesh& object ,const Ray & ray , parser::Vec3f & intersection_normal ,  parser::Vec3f & intersection_point , bool is_shadow_rays_active  )
+static bool calculate_intersection(parser::Scene& scene ,parser::Mesh& object ,const Ray & ray , parser::Vec3f & intersection_normal ,  parser::Vec3f & intersection_point , parser::Face & hit_face , bool is_shadow_rays_active  )
 {
     //motion blur
     if( !is_shadow_rays_active )
@@ -411,6 +411,7 @@ static bool calculate_intersection(parser::Scene& scene ,parser::Mesh& object ,c
 
             hit_points.push_back(temp_intersection_point);
             normals.push_back(normal);
+            faces.push_back(object.faces[i]);
         } 
         /*parser::Vec4f p1_4; 
         p1_4.x = p1.x; 
@@ -480,7 +481,7 @@ static bool calculate_intersection(parser::Scene& scene ,parser::Mesh& object ,c
     // fill intersection and normal
     intersection_point = hit_points[smallest_index];
     intersection_normal = normals[smallest_index];
-
+    hit_face = faces[smallest_index];
     return true; 
         
     
@@ -575,7 +576,7 @@ static bool calculate_intersection(parser::Scene& scene ,parser::Triangle& objec
     return false;
 }
 //a mesh instance intersection 
-static bool calculate_intersection(parser::Scene& scene ,parser::MeshInstance& object ,const Ray & ray , parser::Vec3f & intersection_normal ,  parser::Vec3f & intersection_point , bool is_shadow_rays_active )
+static bool calculate_intersection(parser::Scene& scene ,parser::MeshInstance& object ,const Ray & ray , parser::Vec3f & intersection_normal ,  parser::Vec3f & intersection_point ,parser::Face &hit_face,  bool is_shadow_rays_active )
 {
    if( !is_shadow_rays_active )
     {
@@ -732,13 +733,14 @@ static bool calculate_intersection(parser::Scene& scene ,parser::MeshInstance& o
     // fill intersection and normal
     intersection_point = hit_points[smallest_index];
     intersection_normal = normals[smallest_index];
-
+    //face that has been hit
+    hit_face = faces[smallest_index];
     return true; 
         
     
 }
 
-static bool ray_object_intersection( const Ray & ray , parser::Scene & scene , parser::Vec3f &hitpoint , parser::Vec3f & normal , parser::Material &material ,   int &  prev_object_id  , bool is_shadow_rays_active  )
+static bool ray_object_intersection( const Ray & ray , parser::Scene & scene , parser::Vec3f &hitpoint , parser::Vec3f & normal , parser::Material &material ,   int &  prev_object_id  , parser::Face &hit_face,  bool is_shadow_rays_active  )
 {
     std::vector<parser::Vec3f> hit_points;
     std::vector<parser::Vec3f> normals;
@@ -771,7 +773,7 @@ static bool ray_object_intersection( const Ray & ray , parser::Scene & scene , p
         while( mesh_count < scene.meshes.size())
         {
             object_id = mesh_count + sphere_count + triangle_count; // give every object unique id 
-            is_intersected_with_this_object = calculate_intersection(scene , scene.meshes[mesh_count] , ray , intersection_normal ,   intersection_point , is_shadow_rays_active );
+            is_intersected_with_this_object = calculate_intersection(scene , scene.meshes[mesh_count] , ray , intersection_normal ,   intersection_point , hit_face , is_shadow_rays_active );
             if( is_intersected_with_this_object && object_id != prev_object_id ) // the second clause is for shadow rays in order not the intersect itself
             {
                 hit_points.push_back(intersection_point ); 
@@ -818,7 +820,7 @@ static bool ray_object_intersection( const Ray & ray , parser::Scene & scene , p
         while( mesh_instances_count < scene.mesh_instances.size())
         {
             object_id = mesh_count + sphere_count + triangle_count + mesh_instances_count; // give every object unique id 
-            is_intersected_with_this_object = calculate_intersection(scene , scene.mesh_instances[mesh_instances_count] , ray , intersection_normal ,   intersection_point  , is_shadow_rays_active);
+            is_intersected_with_this_object = calculate_intersection(scene , scene.mesh_instances[mesh_instances_count] , ray , intersection_normal ,   intersection_point  ,hit_face, is_shadow_rays_active);
             if( is_intersected_with_this_object && object_id != prev_object_id ) // the second clause is for shadow rays in order not the intersect itself
             {
                 hit_points.push_back(intersection_point ); 
@@ -864,7 +866,7 @@ static bool ray_object_intersection( const Ray & ray , parser::Scene & scene , p
 
 }
 
-static bool calculate_second_hitpoint_in_same_object( parser::Scene & scene , const Ray & refracted_ray ,  parser::Vec3f & hit_point , parser::Vec3f & normal  , int & object_id , parser::Vec3f & second_hit_point  , parser::Vec3f & second_normal , bool  is_shadow_rays_active   )
+static bool calculate_second_hitpoint_in_same_object( parser::Scene & scene , const Ray & refracted_ray ,  parser::Vec3f & hit_point , parser::Vec3f & normal  , int & object_id , parser::Vec3f & second_hit_point  , parser::Vec3f & second_normal , parser::Face &hit_face  , bool  is_shadow_rays_active   )
 {
     // fetch the object with 
     // 1 - meshes
@@ -902,7 +904,7 @@ static bool calculate_second_hitpoint_in_same_object( parser::Scene & scene , co
     if( if_mesh )
     {
 
-        bool is_intersection = calculate_intersection(scene, mesh , refracted_ray , second_normal , second_hit_point , is_shadow_rays_active);
+        bool is_intersection = calculate_intersection(scene, mesh , refracted_ray , second_normal , second_hit_point ,hit_face, is_shadow_rays_active);
         if(!is_intersection)
         {
             //std::cout << " cannot found second hit_point in mesh" << std::endl;
@@ -935,7 +937,7 @@ static bool calculate_second_hitpoint_in_same_object( parser::Scene & scene , co
     }
     else if( if_mesh_instance)
     {
-        bool is_intersection = calculate_intersection(scene, mesh_instance , refracted_ray , second_normal , second_hit_point , is_shadow_rays_active);
+        bool is_intersection = calculate_intersection(scene, mesh_instance , refracted_ray , second_normal , second_hit_point ,hit_face, is_shadow_rays_active);
         if(!is_intersection)
         {
             return false;

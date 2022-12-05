@@ -1,10 +1,7 @@
 #pragma once 
 #include "parser.h"
-#include "tinyxml2.h"
-#include <sstream>
-#include <stdexcept>
-#include <iostream>
-#include "../support_files/happly.h"
+#define STB_IMAGE_IMPLEMENTATION
+#include "/home/batu/Desktop/RayTracer/RayTracer/Header/stb_image.h"
 void parser::Scene::loadFromXml(const std::string &filepath)
 {
     tinyxml2::XMLDocument file;
@@ -239,7 +236,78 @@ void parser::Scene::loadFromXml(const std::string &filepath)
         element = element->NextSiblingElement("AreaLight");
 
     }
+    //get textures 
+    element = root->FirstChildElement("Textures");
+    element = element->FirstChildElement("Images");
+    if( element != NULL )
+    {
+        element = element->FirstChildElement("Image");
+        while( element )
+        {
+            Image image; 
+            char cwd[500];
+            std::string current_path;
+            getcwd(cwd , sizeof(cwd));
+            current_path = cwd;  
+            current_path = current_path + "/hw4/inputs/";
+            current_path = current_path + element->GetText();
+            int w , h , comp;
+            image.path = current_path;   
+            image.image = stbi_load(current_path.c_str(), &w, &h, &comp, STBI_rgb);
+            image.w = w;
+            image.h = h;
+            image.comp = comp;
+            images.push_back(image);   
+            element = element->NextSiblingElement("Image");
+        }
+    }
+    
+    // get texture maps 
+    element = root->FirstChildElement("Textures");
+    element = element->FirstChildElement("TextureMap");
+    if( element != NULL )
+    {
+        while(element)
+        {
+            TextureMap textureMap; 
+            if( element->Attribute("type" , "image") != NULL  )
+            {
+                textureMap.is_image = true;
+                child =  element->FirstChildElement("ImageId");
+                int image_id = std::stoi(child->GetText());
+                textureMap.image = &images[image_id - 1 ];
+                child =  element->FirstChildElement("DecalMode");
+                std::string decalMode = child->GetText();
+                textureMap.decalMode = decalMode;
 
+                    
+
+                child =  element->FirstChildElement("Interpolation");
+                std::string interpolation = child->GetText();
+                textureMap.interpolation = interpolation;
+
+            } 
+            if( element->Attribute("type" , "perlin") != NULL  )
+            {
+                textureMap.is_image = false;
+                child =  element->FirstChildElement("NoiseConversion");
+                std::string NoiseConversion = child->GetText();
+                textureMap.noiseConversion = NoiseConversion;
+
+                    
+
+                child =  element->FirstChildElement("NoiseScale");
+                std::string NoiseScale = child->GetText();
+                textureMap.noiseScale = NoiseScale;
+
+            } 
+            
+            textureMaps.push_back(textureMap);
+            
+            element = element->NextSiblingElement("TextureMap");
+        }
+    }
+    
     //Get Materials
     element = root->FirstChildElement("Materials");
     element = element->FirstChildElement("Material");
@@ -510,7 +578,17 @@ void parser::Scene::loadFromXml(const std::string &filepath)
         std::cout << " here 0 " << std::endl;
 
     stream.clear();
-
+    //Get VertexData
+    element = root->FirstChildElement("TexCoordData");
+    stream << element->GetText() << std::endl;
+    std::array<int, 2> tex;
+    while (!(stream >> tex[0]).eof() )
+    {
+        stream >> tex[1];
+        texcoords.push_back(tex);
+    }
+    std::cout << " tex data   done " << std::endl;
+    std::cout << " here 0 " << std::endl;
     //Get Meshes
     element = root->FirstChildElement("Objects");
     element = element->FirstChildElement("Mesh");
@@ -523,6 +601,16 @@ void parser::Scene::loadFromXml(const std::string &filepath)
         child = element->FirstChildElement("Material");
         stream << child->GetText() << std::endl;
         stream >> mesh.material_id;
+
+        child = element->FirstChildElement("Textures");
+        stream << child->GetText() << std::endl;
+        int texture_id; 
+        while( stream >> texture_id  )
+        {
+            mesh.textures.push_back(texture_id);
+        }
+        stream.clear();
+
 
         child = element->FirstChildElement("Faces");
 
@@ -668,6 +756,8 @@ void parser::Scene::loadFromXml(const std::string &filepath)
         mesh.current_motion_blur.x = 0;
         mesh.current_motion_blur.y = 0;
         mesh.current_motion_blur.z = 0;
+
+
         meshes.push_back(mesh);
         mesh.faces.clear();
         element = element->NextSiblingElement("Mesh");
@@ -870,6 +960,17 @@ void parser::Scene::loadFromXml(const std::string &filepath)
         sphere.radius = std::stof(child->GetText());
 
         stream.clear();
+
+        child = element->FirstChildElement("Textures");
+        stream << child->GetText() << std::endl;
+        int texture_id; 
+        while( stream >> texture_id  )
+        {
+            sphere.textures.push_back(texture_id);
+        }
+        stream.clear();
+
+
         child = element->FirstChildElement("Transformations");
         if( child != NULL )
         {

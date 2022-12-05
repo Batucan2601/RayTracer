@@ -3,6 +3,12 @@
 #include <string>
 #include <vector>
 #include <cmath> 
+#include "tinyxml2.h"
+#include <sstream>
+#include <stdexcept>
+#include <iostream>
+#include "../support_files/happly.h"
+#include <unistd.h>
 namespace parser
 {
     //Notice that all the structures are as simple as possible
@@ -97,7 +103,22 @@ namespace parser
         //orthonormal bases 
         OrthonormalBasis ortho_basis; 
     };
-    
+    struct Image
+    {
+        std::string path;
+        unsigned char* image; 
+        int w, h, comp;
+    };
+    struct TextureMap
+    {
+        Image* image;
+        std::string decalMode; 
+        std::string interpolation;  
+        bool is_image; // no if perlin yes if texture
+        std::string noiseConversion; // no if perlin yes if texture 
+        std::string noiseScale; // no if perlin yes if texture 
+
+    };
     struct Material
     {
         bool is_mirror;
@@ -136,6 +157,7 @@ namespace parser
         Vec3f current_motion_blur;  // for shadow rays 
         Matrix transformation; 
         Matrix transformation_inverse; 
+        std::vector<int> textures; 
 
     };
     struct MeshInstance
@@ -173,6 +195,8 @@ namespace parser
 
         Matrix transformation; 
         Matrix transformation_inverse; 
+        std::vector<int> textures; 
+
     };
 
     struct Scene
@@ -185,6 +209,10 @@ namespace parser
         Vec3f ambient_light;
         std::vector<PointLight> point_lights;
         std::vector<AreaLight> area_lights;
+        std::vector<Image> images;
+        std::vector<TextureMap> textureMaps;
+        std::vector<std::array<int , 2U > > texcoords; 
+
 
         std::vector<Material> materials;
         std::vector<Vec3f> vertex_data;

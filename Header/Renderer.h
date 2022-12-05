@@ -208,6 +208,8 @@ static parser::Vec3f color_pixel(parser::Scene& scene , Ray & ray )
     parser::Vec3f color(0.0f , 0.0f , 0.0f );
     
     parser::Vec3f hit_point; 
+    parser::Face hit_face; 
+
     parser::Vec3f normal;
     parser::Material material; 
     material.is_conductor = false; 
@@ -230,7 +232,7 @@ static parser::Vec3f color_pixel(parser::Scene& scene , Ray & ray )
     //find the hitpoint 
     bool is_shadow_rays_active = false;
     int object_id = -1; 
-    bool  is_object_hit = ray_object_intersection( ray , scene ,  hit_point , normal  , material   , object_id ,  is_shadow_rays_active);
+    bool  is_object_hit = ray_object_intersection( ray , scene ,  hit_point , normal  , material   , object_id , hit_face, is_shadow_rays_active);
 
     if( !is_object_hit)
     {
@@ -257,9 +259,10 @@ static parser::Vec3f color_pixel(parser::Scene& scene , Ray & ray )
         // else you directly went to a light
         
         parser::Vec3f hit_point_temp; 
+        parser::Face hit_face_temp; 
         parser::Vec3f normal_temp;
         parser::Material material_temp;  
-        bool  is_object_hit = ray_object_intersection( shadow_ray , scene ,  hit_point_temp , normal_temp , material_temp , object_id , is_shadow_rays_active);
+        bool  is_object_hit = ray_object_intersection( shadow_ray , scene ,  hit_point_temp , normal_temp , material_temp , object_id , hit_face_temp ,  is_shadow_rays_active);
         
         if( is_object_hit ) // it is in shadow no contribution from light
         {
@@ -339,10 +342,10 @@ static parser::Vec3f color_pixel(parser::Scene& scene , Ray & ray )
         parser::Vec3f hit_point_temp; 
         parser::Vec3f normal_temp;
         parser::Material material_temp;  
-        
+        parser::Face hit_face_temp;
         
 
-        bool  is_object_hit = ray_object_intersection( shadow_ray , scene ,  hit_point_temp , normal_temp , material_temp , object_id , is_shadow_rays_active);
+        bool  is_object_hit = ray_object_intersection( shadow_ray , scene ,  hit_point_temp , normal_temp , material_temp , object_id , hit_face_temp , is_shadow_rays_active);
         
         //before that calculate t of light pos //also pass  
         float light_pos_t = (p.x - shadow_ray.origin.x )  / shadow_ray.direction.x;
@@ -466,8 +469,10 @@ static parser::Vec3f color_pixel(parser::Scene& scene , Ray & ray )
             //calculate second hit 
             parser::Vec3f second_hit_point(0.0f , 0.0f , 0.0f );
             parser::Vec3f second_normal(0.0f ,0.0f , 0.0f );
+            parser::Face second_face;
+
             // calculate attenuation
-            bool is_hit = calculate_second_hitpoint_in_same_object( scene , refraction_ray , hit_point , normal , object_id  , second_hit_point , second_normal , is_shadow_rays_active);
+            bool is_hit = calculate_second_hitpoint_in_same_object( scene , refraction_ray , hit_point , normal , object_id  , second_hit_point , second_normal ,second_face ,  is_shadow_rays_active);
             if ( is_hit  && cosine_phi > 0 ) // if cosine phi less than 0 abort 
             {
                 cosine_phi = std::sqrt(cosine_phi);
