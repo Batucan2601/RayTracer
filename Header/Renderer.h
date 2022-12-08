@@ -49,17 +49,15 @@ static void generate_image(parser::Scene & scene)
         //BVH::BoundingBoxTree boxtree;
        //BVH::BoundingBoxTree* head_node = &boxtree; 
         //BVH::generate_BVH_tree(scene ,head_node );
-        parser::Vec3f  color;
-        color.x = 0.0f;
-        color.y = 0.0f;
-        color.z = 0.0f;
+       
         for (size_t y = 0; y < height; y++)
         {
             for (size_t x = 0; x < width; x++)
             {
-                
-                //initilaize recursion depth
-                
+                parser::Vec3f  color;
+                color.x = 0.0f;
+                color.y = 0.0f;
+                color.z = 0.0f;
                 // initialize the ray
                 parser::Vec3f current_pixel_world_space =  (starting_point_parser +  ( parser::Vec3f( interval_row.x ,  interval_row.y ,  interval_row.z) * (float)x )  )  +   ( parser::Vec3f( interval_col.x ,  interval_col.y ,  interval_col.z) * (float )y  )  ; 
                 
@@ -91,7 +89,6 @@ static void generate_image(parser::Scene & scene)
                         
                     }
                 }
-
                 else
                 {
                     //refresh recursion depth
@@ -233,14 +230,14 @@ static parser::Vec3f color_pixel(parser::Scene& scene , Ray & ray )
     bool is_shadow_rays_active = false;
     int object_id = -1; 
     bool  is_object_hit = ray_object_intersection( ray , scene ,  hit_point , normal  , material   , object_id , hit_face, is_shadow_rays_active);
-
     if( !is_object_hit)
     {
         return parser::Vec3f(scene.background_color.x, scene.background_color.y , scene.background_color.z );
     }
-    //normalize normal 
-    //now we got the  nearest hitpoint and normal of that hitpoint. we can calculate color and cast shadow rays
-    
+    //check texture
+    parser::Vec3f texture_color; 
+    parser::Material texture_material; 
+    bool is_intersection_textured = is_texture_present(  scene ,   object_id ,  hit_point  ,  normal , hit_face ,  texture_color ,  texture_material);
     //we can add ambient shading
     color = parser::Vec3f(scene.ambient_light.x , scene.ambient_light.y , scene.ambient_light.z);
     //  for each point light
@@ -278,7 +275,14 @@ static parser::Vec3f color_pixel(parser::Scene& scene , Ray & ray )
         //clamp cosine alpha
         cosine_alpha = std::max(0.0f , cosine_alpha);
         diffuse = diffuse * cosine_alpha; 
-        diffuse = parser::Vec3f( diffuse.x * scene.point_lights[i].intensity.x , diffuse.y *  scene.point_lights[i].intensity.y ,diffuse.z *   scene.point_lights[i].intensity.z) / (parser::distance(light_pos , hit_point )*parser::distance(light_pos, hit_point)  );
+        if( is_intersection_textured )
+        {
+            diffuse = parser::Vec3f( texture_material.diffuse.x * scene.point_lights[i].intensity.x , texture_material.diffuse.y *  scene.point_lights[i].intensity.y , texture_material.diffuse.z *   scene.point_lights[i].intensity.z) / (parser::distance(light_pos , hit_point )*parser::distance(light_pos, hit_point)  );
+        }
+        else
+        {
+            diffuse = parser::Vec3f( diffuse.x * scene.point_lights[i].intensity.x , diffuse.y *  scene.point_lights[i].intensity.y ,diffuse.z *   scene.point_lights[i].intensity.z) / (parser::distance(light_pos , hit_point )*parser::distance(light_pos, hit_point)  );
+        }
         //clamp diffuse
         diffuse.x = std::min(255.0f , diffuse.x );
         diffuse.y = std::min(255.0f , diffuse.y );
@@ -295,8 +299,14 @@ static parser::Vec3f color_pixel(parser::Scene& scene , Ray & ray )
         float cosine_h_n = parser::dot(h , normal) /  ( parser::length(h) * parser::length(normal) ); // they re both normalised but just in case
         //clamp cosine
         cosine_h_n = std::max(0.0f , cosine_h_n );
-
-        specular =    parser::Vec3f( specular.x * scene.point_lights[i].intensity.x , specular.y * scene.point_lights[i].intensity.y  , specular.z * scene.point_lights[i].intensity.z ) / (parser::distance(light_pos , hit_point )*parser::distance(light_pos, hit_point)  ) * std::pow( cosine_h_n , phong_exponent   );  
+        if( is_intersection_textured )
+        {
+            specular =    parser::Vec3f(  texture_material.specular.x * scene.point_lights[i].intensity.x , texture_material.specular.y * scene.point_lights[i].intensity.y  , texture_material.specular.z * scene.point_lights[i].intensity.z ) / (parser::distance(light_pos , hit_point )*parser::distance(light_pos, hit_point)  ) * std::pow( cosine_h_n , phong_exponent   );  
+        }
+        else
+        {
+            specular =    parser::Vec3f( specular.x * scene.point_lights[i].intensity.x , specular.y * scene.point_lights[i].intensity.y  , specular.z * scene.point_lights[i].intensity.z ) / (parser::distance(light_pos , hit_point )*parser::distance(light_pos, hit_point)  ) * std::pow( cosine_h_n , phong_exponent   );  
+        }
         //clamp diffuse
         specular.x = std::min(255.0f , specular.x );
         specular.y = std::min(255.0f , specular.y );

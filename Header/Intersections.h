@@ -460,7 +460,7 @@ static bool calculate_intersection(parser::Scene& scene ,parser::Mesh& object ,c
     {
         intersection_point = hit_points[0];
         intersection_normal = normals[0];
-        
+        hit_face = faces[0];
         return true; 
     }
     std::vector<float> distances;
@@ -712,7 +712,7 @@ static bool calculate_intersection(parser::Scene& scene ,parser::MeshInstance& o
     {
         intersection_point = hit_points[0];
         intersection_normal = normals[0];
-        
+        hit_face = faces[0];
         return true; 
     }
     std::vector<float> distances;
@@ -745,6 +745,8 @@ static bool ray_object_intersection( const Ray & ray , parser::Scene & scene , p
     std::vector<parser::Vec3f> hit_points;
     std::vector<parser::Vec3f> normals;
     std::vector<parser::Material> materials; 
+    std::vector<parser::Face> faces; 
+
     std::vector<float> distances;
     std::vector<int> object_id_list;
 
@@ -769,7 +771,6 @@ static bool ray_object_intersection( const Ray & ray , parser::Scene & scene , p
         bool is_interected_with_this_triangle = false; 
         bool is_intersected_with_this_object = false; 
         bool is_intersected_with_this_sphere = false; 
-
         while( mesh_count < scene.meshes.size())
         {
             object_id = mesh_count + sphere_count + triangle_count; // give every object unique id 
@@ -780,6 +781,7 @@ static bool ray_object_intersection( const Ray & ray , parser::Scene & scene , p
                 normals.push_back(intersection_normal );
                 materials.push_back(scene.materials[scene.meshes[mesh_count].material_id - 1] );
                 object_id_list.push_back(object_id);
+                faces.push_back(hit_face);
             }
             
             mesh_count += 1; 
@@ -827,6 +829,8 @@ static bool ray_object_intersection( const Ray & ray , parser::Scene & scene , p
                 normals.push_back(intersection_normal );
                 materials.push_back(scene.materials[scene.mesh_instances[mesh_instances_count].material_id - 1] );
                 object_id_list.push_back(object_id);
+                faces.push_back(hit_face);
+
             }
             
             mesh_instances_count += 1; 
@@ -857,7 +861,7 @@ static bool ray_object_intersection( const Ray & ray , parser::Scene & scene , p
     hitpoint = hit_points[smallest_index];
     normal = normals[smallest_index];
     material = materials[smallest_index];
-    
+    hit_face = faces[smallest_index];
     if( !is_shadow_rays_active) // if not shadow rays active  set prev_object_no_to object
     {
         prev_object_id = object_id_list[smallest_index];

@@ -11,7 +11,7 @@
 #include "../System_Files/support_files/parser.h"
 parser::Scene scene;
 parser::Camera current_camera;
-#include "../Header/Intersections.h"
+#include "../Header/TextureOperations.h"
 
 
 

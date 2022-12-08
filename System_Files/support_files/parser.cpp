@@ -79,6 +79,9 @@ void parser::Scene::loadFromXml(const std::string &filepath)
             stream << child->GetText() << std::endl;
             child = element->FirstChildElement("ImageName");
             stream << child->GetText() << std::endl;
+            child = element->FirstChildElement("NumSamples"); //assume square 
+            stream << child->GetText() << std::endl;
+            
             Vec3f gazePoint;  
             float fovy; 
             stream >> camera.position.x >> camera.position.y >> camera.position.z;
@@ -88,7 +91,7 @@ void parser::Scene::loadFromXml(const std::string &filepath)
             stream >> camera.near_distance;
             stream >> camera.image_width >> camera.image_height;
             stream >> camera.image_name;
-
+            stream >> camera.number_of_samples;
             float t = camera.near_distance *  std::tan( fovy * M_PI/180  / 2 );
             float bottom = -t;
             float aspect = camera.image_width /  camera.image_height;
@@ -101,6 +104,9 @@ void parser::Scene::loadFromXml(const std::string &filepath)
             camera.near_plane.w = t; 
 
             camera.gaze = parser::normalize( gazePoint - camera.position);
+
+            camera.focus_distance = -1;
+            camera.aperture_size = -1 ;
         }   
         else
         {
@@ -283,8 +289,13 @@ void parser::Scene::loadFromXml(const std::string &filepath)
                     
 
                 child =  element->FirstChildElement("Interpolation");
-                std::string interpolation = child->GetText();
-                textureMap.interpolation = interpolation;
+                textureMap.interpolation = "";
+                if( child != NULL )
+                {
+                    std::string interpolation = child->GetText();
+                    textureMap.interpolation = interpolation;
+                }
+                
 
             } 
             if( element->Attribute("type" , "perlin") != NULL  )
@@ -580,13 +591,17 @@ void parser::Scene::loadFromXml(const std::string &filepath)
     stream.clear();
     //Get VertexData
     element = root->FirstChildElement("TexCoordData");
-    stream << element->GetText() << std::endl;
-    std::array<int, 2> tex;
-    while (!(stream >> tex[0]).eof() )
+    if( element != NULL )
     {
-        stream >> tex[1];
-        texcoords.push_back(tex);
+        stream << element->GetText() << std::endl;
+        std::array<int, 2> tex;
+        while (!(stream >> tex[0]).eof() )
+        {
+            stream >> tex[1];
+            texcoords.push_back(tex);
+        }
     }
+    
     std::cout << " tex data   done " << std::endl;
     std::cout << " here 0 " << std::endl;
     //Get Meshes
@@ -962,12 +977,16 @@ void parser::Scene::loadFromXml(const std::string &filepath)
         stream.clear();
 
         child = element->FirstChildElement("Textures");
-        stream << child->GetText() << std::endl;
-        int texture_id; 
-        while( stream >> texture_id  )
+        if( child != NULL )
         {
-            sphere.textures.push_back(texture_id);
+            stream << child->GetText() << std::endl;
+            int texture_id; 
+            while( stream >> texture_id  )
+            {
+                sphere.textures.push_back(texture_id);
         }
+        }
+        
         stream.clear();
 
 
@@ -1060,6 +1079,14 @@ parser::Vec3f parser::cross( const parser::Vec3f& vec1 , const parser::Vec3f & v
     cross.y = -1 * ( (vec1.x * vec2.z) - (vec1.z * vec2.x) ) ;
     cross.z = (vec1.x * vec2.y) - (vec1.y * vec2.x);
     return parser::normalize(cross);
+}
+parser::Vec3f parser::cross_non_normalize( const parser::Vec3f& vec1 , const parser::Vec3f & vec2 )
+{
+    parser::Vec3f cross; 
+    cross.x = (vec1.y * vec2.z) - (vec1.z * vec2.y);
+    cross.y = -1 * ( (vec1.x * vec2.z) - (vec1.z * vec2.x) ) ;
+    cross.z = (vec1.x * vec2.y) - (vec1.y * vec2.x);
+    return cross;
 }
 float parser::length(const parser::Vec3f & vec1 )
 {

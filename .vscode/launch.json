@@ -14,7 +14,7 @@
                 "/home/batu/Desktop/RayTracer/RayTracer/Header",
                 "/home/batu/Desktop/RayTracer/RayTracer/System_Files/support_files"
             ],
-            "args": ["/home/batu/Desktop/RayTracer/RayTracer/hw4/inputs/cube_wall_normal.xml"],
+            "args": ["/home/batu/Desktop/RayTracer/RayTracer/hw4/inputs/cube_wall.xml"],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",
             "environment": [],

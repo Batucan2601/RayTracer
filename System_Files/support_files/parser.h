@@ -230,6 +230,8 @@ namespace parser
 
     float dot( const Vec3f& vec1 , const Vec3f& vec2   );
     Vec3f cross( const Vec3f& vec1 , const Vec3f & vec2 );
+    Vec3f cross_non_normalize( const Vec3f& vec1 , const Vec3f & vec2 );
+
     float length(const Vec3f & vec1 );
     Vec3f normalize( const  Vec3f &  vec1 );
     float distance(const  Vec3f &  vec1 ,  const  Vec3f & vec2   );
