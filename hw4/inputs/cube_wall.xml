@@ -47,7 +47,7 @@
         <TextureMap id="1" type="image">
             <ImageId>1</ImageId>
             <DecalMode>replace_kd</DecalMode>
-            <Interpolation>bilinear</Interpolation>
+            <Interpolation>nearest</Interpolation>
         </TextureMap>
     </Textures>
 

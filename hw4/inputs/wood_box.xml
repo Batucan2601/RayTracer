@@ -17,7 +17,7 @@
     </Cameras>
 
     <Lights>
-        <!--<AmbientLight>20 20 20</AmbientLight>-->
+        <AmbientLight>20 20 20</AmbientLight>
         <PointLight id="1">
             <Position>3 3 3</Position>
             <Intensity>10000 10000 10000</Intensity>

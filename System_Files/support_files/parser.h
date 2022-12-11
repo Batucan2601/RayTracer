@@ -116,8 +116,8 @@ namespace parser
         std::string interpolation;  
         bool is_image; // no if perlin yes if texture
         std::string noiseConversion; // no if perlin yes if texture 
-        std::string noiseScale; // no if perlin yes if texture 
-
+        float noiseScale; // no if perlin yes if texture 
+        float bumpFactor; 
     };
     struct Material
     {

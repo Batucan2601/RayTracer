@@ -407,8 +407,6 @@ static bool calculate_intersection(parser::Scene& scene ,parser::Mesh& object ,c
 
             normal = parser::normalize( parser::cross(p2 - p1 , p3 - p1) );
 
-
-
             hit_points.push_back(temp_intersection_point);
             normals.push_back(normal);
             faces.push_back(object.faces[i]);
@@ -829,7 +827,7 @@ static bool ray_object_intersection( const Ray & ray , parser::Scene & scene , p
                 normals.push_back(intersection_normal );
                 materials.push_back(scene.materials[scene.mesh_instances[mesh_instances_count].material_id - 1] );
                 object_id_list.push_back(object_id);
-                faces.push_back(hit_face);
+                //faces.push_back(hit_face);
 
             }
             
@@ -861,7 +859,10 @@ static bool ray_object_intersection( const Ray & ray , parser::Scene & scene , p
     hitpoint = hit_points[smallest_index];
     normal = normals[smallest_index];
     material = materials[smallest_index];
-    hit_face = faces[smallest_index];
+    if( (object_id <  scene.meshes.size())) // if object is not sphere fetch the faces 
+    {
+         hit_face = faces[smallest_index];
+    }
     if( !is_shadow_rays_active) // if not shadow rays active  set prev_object_no_to object
     {
         prev_object_id = object_id_list[smallest_index];

@@ -14,6 +14,9 @@ int max_recursion_depth;
 std::random_device rd_area_light;  // Will be used to obtain a seed for the random number engine
 std::mt19937 gen_area(rd_area_light()); // Standard mersenne_twister_engine seeded with rd()
 std::uniform_real_distribution<> dis_area_light(-0.5 , 0.5);
+
+//bounding boxes
+std::vector< BVH::BoundingBox > bounding_boxes;
 static void generate_image(parser::Scene & scene)
 {
     std::random_device rd;  // Will be used to obtain a seed for the random number engine
@@ -49,7 +52,7 @@ static void generate_image(parser::Scene & scene)
         //BVH::BoundingBoxTree boxtree;
        //BVH::BoundingBoxTree* head_node = &boxtree; 
         //BVH::generate_BVH_tree(scene ,head_node );
-       
+        bounding_boxes =  BVH::generate_bounding_boxes( scene  );
         for (size_t y = 0; y < height; y++)
         {
             for (size_t x = 0; x < width; x++)
@@ -108,7 +111,7 @@ static void generate_image(parser::Scene & scene)
                /*  //initilaize recursion depth
                 max_recursion_depth = scene.max_recursion_depth;
                 // initialize the ray
-                parser::Vec3f current_pixel_world_space =  (starting_point_parser +  ( parser::Vec3f( interval_row.x ,  interval_row.y ,  interval_row.z) * (float)x )  )  +   ( parser::Vec3f( interval_col.x ,  interval_col.y ,  interval_col.z) * (float )y  )  ; 
+                parser::Vec3f current_pixel_world_space =  (starting_p114oint_parser +  ( parser::Vec3f( interval_row.x ,  interval_row.y ,  interval_row.z) * (float)x )  )  +   ( parser::Vec3f( interval_col.x ,  interval_col.y ,  interval_col.z) * (float )y  )  ; 
                 Ray ray(parser::Vec3f( current_camera.position.x , current_camera.position.y , current_camera.position.z  )  , current_pixel_world_space );
                 parser::Vec3f  color = color_pixel(scene  , ray);
                 // color cast 
@@ -234,9 +237,11 @@ static parser::Vec3f color_pixel(parser::Scene& scene , Ray & ray )
     {
         return parser::Vec3f(scene.background_color.x, scene.background_color.y , scene.background_color.z );
     }
+
     //check texture
     parser::Vec3f texture_color; 
     parser::Material texture_material; 
+
     bool is_intersection_textured = is_texture_present(  scene ,   object_id ,  hit_point  ,  normal , hit_face ,  texture_color ,  texture_material);
     //we can add ambient shading
     color = parser::Vec3f(scene.ambient_light.x , scene.ambient_light.y , scene.ambient_light.z);
@@ -272,16 +277,21 @@ static parser::Vec3f color_pixel(parser::Scene& scene , Ray & ray )
         // diffuse 
         parser::Vec3f diffuse = parser::Vec3f( material.diffuse.x , material.diffuse.y, material.diffuse.z);
         float cosine_alpha = parser::dot(shadow_ray.direction  ,  normal ) / (parser::length(shadow_ray.direction) * parser::length(normal)  ) ; //normal vectors
-        //clamp cosine alpha
-        cosine_alpha = std::max(0.0f , cosine_alpha);
-        diffuse = diffuse * cosine_alpha; 
+        
         if( is_intersection_textured )
         {
             diffuse = parser::Vec3f( texture_material.diffuse.x * scene.point_lights[i].intensity.x , texture_material.diffuse.y *  scene.point_lights[i].intensity.y , texture_material.diffuse.z *   scene.point_lights[i].intensity.z) / (parser::distance(light_pos , hit_point )*parser::distance(light_pos, hit_point)  );
+            //clamp cosine alpha
+            cosine_alpha = std::max(0.0f , cosine_alpha);
+            diffuse = diffuse * cosine_alpha; 
+
         }
         else
         {
             diffuse = parser::Vec3f( diffuse.x * scene.point_lights[i].intensity.x , diffuse.y *  scene.point_lights[i].intensity.y ,diffuse.z *   scene.point_lights[i].intensity.z) / (parser::distance(light_pos , hit_point )*parser::distance(light_pos, hit_point)  );
+             //clamp cosine alpha
+            cosine_alpha = std::max(0.0f , cosine_alpha);
+            diffuse = diffuse * cosine_alpha; 
         }
         //clamp diffuse
         diffuse.x = std::min(255.0f , diffuse.x );
@@ -391,7 +401,7 @@ static parser::Vec3f color_pixel(parser::Scene& scene , Ray & ray )
         parser::Vec3f viewpos = parser::normalize(ray.origin - hit_point); 
         parser::Vec3f h =  parser::normalize( shadow_ray.direction + viewpos ); // this might be flawed 
         float cosine_h_n = parser::dot(h , normal) /  ( parser::length(h) * parser::length(normal) ); // they re both normalised but just in case
-        //clamp cosine
+        //clamp cosine135
         cosine_h_n = std::max(0.0f , cosine_h_n );
 
         specular =    parser::Vec3f( specular.x * L.x, specular.y * L.y  , specular.z * L.z )  * std::pow( cosine_h_n , phong_exponent   );  

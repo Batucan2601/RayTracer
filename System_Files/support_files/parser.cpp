@@ -295,6 +295,14 @@ void parser::Scene::loadFromXml(const std::string &filepath)
                     std::string interpolation = child->GetText();
                     textureMap.interpolation = interpolation;
                 }
+
+                child =  element->FirstChildElement("BumpFactor");
+                if( child != NULL )
+                {
+                    float bumpFactor = std::stoi(child->GetText());
+                    textureMap.bumpFactor = bumpFactor;
+                }
+                
                 
 
             } 
@@ -308,8 +316,10 @@ void parser::Scene::loadFromXml(const std::string &filepath)
                     
 
                 child =  element->FirstChildElement("NoiseScale");
-                std::string NoiseScale = child->GetText();
+                float NoiseScale = std::stoi(child->GetText());
                 textureMap.noiseScale = NoiseScale;
+
+                
 
             } 
             
@@ -979,15 +989,18 @@ void parser::Scene::loadFromXml(const std::string &filepath)
         child = element->FirstChildElement("Textures");
         if( child != NULL )
         {
-            stream << child->GetText() << std::endl;
-            int texture_id; 
-            while( stream >> texture_id  )
+            std::istringstream iss(child->GetText());
+            std::string temp;
+            while( std::getline(iss ,temp , ' ' ))
             {
-                sphere.textures.push_back(texture_id);
+                int texture_id; 
+                sphere.textures.push_back(std::stoi(temp));
+            }
         }
-        }
+
         
         stream.clear();
+        
 
 
         child = element->FirstChildElement("Transformations");

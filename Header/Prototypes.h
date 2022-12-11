@@ -24,3 +24,9 @@ parser::Vec3f get_texture_color_from_mesh( parser::Scene & scene ,  int object_i
 parser::Vec3f get_texture_color_from_sphere( parser::Scene & scene ,  int object_id , parser::Vec3f & intersection_point  , parser::Vec3f & intersection_normal  , parser::Vec3f &  texture_color ,  parser::Material & new_material );
 parser::Vec3f get_bilinear_coord_color(  parser::TextureMap & texturemap , float u , float v );
 parser::Vec3f get_nearest_coord_color(  parser::TextureMap & texturemap , float u , float v );
+parser::Vec3f replace_normal_sphere(parser::Sphere * sphere , parser::Vec3f & hitpoint ,  parser::Vec3f & textureColor  , float omega , float phi );
+parser::Vec3f replace_normal_mesh(int* v1_texcoord ,int* v2_texcoord ,int* v3_texcoord , parser::Vec3f &v1 ,parser::Vec3f &v2,parser::Vec3f &v3, parser::Vec3f & textureColor );
+parser::Vec3f replace_normal_sphere_bump(parser::Sphere * sphere , parser::Vec3f & hitpoint ,  parser::Vec3f & textureColor  , float omega , float phi , parser::TextureMap & texturemap ,  float u , float v  );
+parser::Vec3f replace_normal_mesh(int* v1_texcoord ,int* v2_texcoord ,int* v3_texcoord , parser::Vec3f &v1 ,parser::Vec3f &v2,parser::Vec3f &v3, parser::Vec3f & textureColor  , parser::TextureMap & texturemap ,  float u , float v);
+void init_perlin_noise();
+parser::Vec3f hash_function(int index);
