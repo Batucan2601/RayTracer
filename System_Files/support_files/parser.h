@@ -48,6 +48,14 @@ namespace parser
         float x, y, z, w;
     };
     
+    class Vec2f
+    {
+        public:
+        Vec2f();
+        Vec2f( float x , float y );
+        float x , y;
+    };
+    float dot_vec2f( const parser::Vec2f & v1 ,  const parser::Vec2f & v2  );
     class Matrix
     {
         public:
@@ -119,6 +127,8 @@ namespace parser
         float noiseScale; // no if perlin yes if texture 
         float bumpFactor; 
     };
+    bool is_texture_background = false; 
+    TextureMap background; 
     struct Material
     {
         bool is_mirror;
@@ -234,6 +244,9 @@ namespace parser
 
     float length(const Vec3f & vec1 );
     Vec3f normalize( const  Vec3f &  vec1 );
+    Vec2f normalize_vec2f( const  Vec2f &  vec1   );
+
+
     float distance(const  Vec3f &  vec1 ,  const  Vec3f & vec2   );
 
     

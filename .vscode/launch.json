@@ -14,7 +14,7 @@
                 "/home/batu/Desktop/RayTracer/RayTracer/Header",
                 "/home/batu/Desktop/RayTracer/RayTracer/System_Files/support_files"
             ],
-            "args": ["/home/batu/Desktop/RayTracer/RayTracer/hw4/inputs/sphere_perlin.xml"],
+            "args": ["/home/batu/Desktop/RayTracer/RayTracer/hw4/inputs/galactica_static.xml"],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",
             "environment": [],

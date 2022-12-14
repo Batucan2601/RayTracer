@@ -54,6 +54,8 @@
         "bitset": "cpp",
         "chrono": "cpp",
         "optional": "cpp",
-        "ratio": "cpp"
+        "ratio": "cpp",
+        "thread": "cpp",
+        "typeindex": "cpp"
     }
 }

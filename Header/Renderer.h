@@ -15,6 +15,10 @@ std::random_device rd_area_light;  // Will be used to obtain a seed for the rand
 std::mt19937 gen_area(rd_area_light()); // Standard mersenne_twister_engine seeded with rd()
 std::uniform_real_distribution<> dis_area_light(-0.5 , 0.5);
 
+//global intevals
+parser::Vec3f global_interval_row; 
+parser::Vec3f global_interval_col; 
+
 //bounding boxes
 std::vector< BVH::BoundingBox > bounding_boxes;
 static void generate_image(parser::Scene & scene)
@@ -24,6 +28,7 @@ static void generate_image(parser::Scene & scene)
     std::uniform_real_distribution<> dis(0.0 , 1.0);
     
     std::cout <<  "camera size  " << scene.cameras.size()  << std::endl; 
+    init_perlin_noise();
     for (size_t camera_no = 0; camera_no < scene.cameras.size() ; camera_no++)
     {
         int i = 0; 
@@ -115,7 +120,7 @@ static void generate_image(parser::Scene & scene)
                 Ray ray(parser::Vec3f( current_camera.position.x , current_camera.position.y , current_camera.position.z  )  , current_pixel_world_space );
                 parser::Vec3f  color = color_pixel(scene  , ray);
                 // color cast 
-                image[i++] = (unsigned char) (color.x);
+                image[i++] = (unsigned char) (cstd::vector< BVH::BoundingBox >olor.x);
                 image[i++] = (unsigned char) (color.y);
                 image[i++] = (unsigned char) (color.z);
                */
@@ -199,6 +204,10 @@ static void calculate_image_plane(const parser::Camera &current_camera , parser:
     interval_col.x = interval_col_parser.x;
     interval_col.y = interval_col_parser.y;
     interval_col.z = interval_col_parser.z;
+
+    global_interval_row = interval_row;
+    global_interval_col = interval_col;
+
 }
 
 static parser::Vec3f color_pixel(parser::Scene& scene , Ray & ray )
@@ -234,8 +243,15 @@ static parser::Vec3f color_pixel(parser::Scene& scene , Ray & ray )
     int object_id = -1; 
     bool  is_object_hit = ray_object_intersection( ray , scene ,  hit_point , normal  , material   , object_id , hit_face, is_shadow_rays_active);
     if( !is_object_hit)
-    {
+    {   
+        if(parser::is_texture_background)
+        {
         return parser::Vec3f(scene.background_color.x, scene.background_color.y , scene.background_color.z );
+        }
+        else
+        {
+            return parse_background( current_camera , ray , global_interval_row , global_interval_col    );
+        }
     }
 
     //check texture

@@ -29,4 +29,8 @@ parser::Vec3f replace_normal_mesh(int* v1_texcoord ,int* v2_texcoord ,int* v3_te
 parser::Vec3f replace_normal_sphere_bump(parser::Sphere * sphere , parser::Vec3f & hitpoint ,  parser::Vec3f & textureColor  , float omega , float phi , parser::TextureMap & texturemap ,  float u , float v  );
 parser::Vec3f replace_normal_mesh(int* v1_texcoord ,int* v2_texcoord ,int* v3_texcoord , parser::Vec3f &v1 ,parser::Vec3f &v2,parser::Vec3f &v3, parser::Vec3f & textureColor  , parser::TextureMap & texturemap ,  float u , float v);
 void init_perlin_noise();
-parser::Vec3f hash_function(int index);
+parser::Vec2f hash_function(int index);
+parser::Vec3f get_perlin_color_sphere(parser::Sphere * sphere , parser::TextureMap & texturemap ,  parser::Vec3f hit_point   );
+parser::Vec3f replace_normal_sphere_bump_perlin(parser::Sphere * sphere , parser::TextureMap & texturemap ,  parser::Vec3f hit_point , parser::Vec3f  hit_normal);
+parser::Vec3f parse_background(  const parser::Camera &current_camera , Ray  ray,  parser::Vec3f  interval_row, parser::Vec3f  interval_col  );
+parser::Vec3f get_perlin_color_mesh( parser::TextureMap & texturemap ,  parser::Vec3f hit_point   );

@@ -285,7 +285,26 @@ void parser::Scene::loadFromXml(const std::string &filepath)
                 child =  element->FirstChildElement("DecalMode");
                 std::string decalMode = child->GetText();
                 textureMap.decalMode = decalMode;
+                if( decalMode == "replace_background")
+                {
+                    //is_texture_background = true; 
+                    child =  element->FirstChildElement("Interpolation");
+                    textureMap.interpolation = "";
+                    if( child != NULL )
+                    {
+                        std::string interpolation = child->GetText();
+                        textureMap.interpolation = interpolation;
+                    }
 
+                    child =  element->FirstChildElement("BumpFactor");
+                    if( child != NULL )
+                    {
+                        float bumpFactor = std::stoi(child->GetText());
+                        textureMap.bumpFactor = bumpFactor;
+                    }
+                    //background = textureMap;
+                    continue; 
+                }
                     
 
                 child =  element->FirstChildElement("Interpolation");
@@ -319,6 +338,12 @@ void parser::Scene::loadFromXml(const std::string &filepath)
                 float NoiseScale = std::stoi(child->GetText());
                 textureMap.noiseScale = NoiseScale;
 
+                child =  element->FirstChildElement("DecalMode");
+                if( child != NULL )
+                {
+                    std::string decalMode = child->GetText();
+                    textureMap.decalMode = decalMode;
+                }
                 
 
             } 
@@ -624,8 +649,7 @@ void parser::Scene::loadFromXml(const std::string &filepath)
         mesh.transformation_inverse.Identity(); // set I 
 
         child = element->FirstChildElement("Material");
-        stream << child->GetText() << std::endl;
-        stream >> mesh.material_id;
+        mesh.material_id = std::stoi(child->GetText());
 
         child = element->FirstChildElement("Textures");
         stream << child->GetText() << std::endl;
@@ -1140,6 +1164,32 @@ parser::Vec3f::Vec3f()
     this->z = 0;
 
 }
+parser::Vec2f::Vec2f(float x  , float y )
+{
+    this->x = x;
+    this->y = y;
+
+}
+parser::Vec2f::Vec2f()
+{
+    this->x = 0;
+    this->y = 0;
+
+}
+parser::Vec2f parser::normalize_vec2f( const  parser::Vec2f &  vec1    )
+{
+    parser::Vec2f new_vec;
+    float len =  std::sqrt( vec1.x*vec1.x + vec1.y*vec1.y );
+    new_vec.x = vec1.x / len;
+    new_vec.y = vec1.y / len; 
+
+    return new_vec;
+}
+
+float parser::dot_vec2f( const parser::Vec2f & v1 , const parser::Vec2f & v2  )
+{
+    return v1.x * v2.x + v1.y * v2.y;
+} 
 parser::Vec3f parser::Vec3f::operator +(const parser::Vec3f & vec1   )
 {
     parser::Vec3f vec;

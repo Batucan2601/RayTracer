@@ -2,7 +2,12 @@
 #include <math.h>       /* isnan, std */
 #include "../System_Files/support_files/parser.h"
 #include <algorithm>
-static int permutation_table[256]; // ap ermutation table for perlin noise 
+#define PERLINTABLESIZE 256
+static int permutation_table[PERLINTABLESIZE * 2]; // ap ermutation table for perlin noise 
+static int permutation_table_temp[PERLINTABLESIZE]; // ap ermutation table for perlin noise 
+
+static  parser::Vec2f gradient_vecs[PERLINTABLESIZE]; // ap ermutation table for perlin noise 
+
 
 bool is_texture_present( parser::Scene & scene ,  int object_id , parser::Vec3f & intersection_point  , parser::Vec3f & intersection_normal , parser::Face &intersection_face , parser::Vec3f & texture_color ,  parser::Material &new_material)
 {
@@ -162,7 +167,26 @@ parser::Vec3f get_texture_color_from_mesh( parser::Scene & scene ,  int object_i
         }
         else //perlin
         {
-
+            //parse Decal
+            if(scene.textureMaps[textures[i] - 1 ].decalMode == "replace_kd" )
+            {
+                texture_color =   get_perlin_color_mesh(   scene.textureMaps[textures[i] - 1 ] , intersection_point  );
+                new_material.diffuse = texture_color /255; 
+            }
+            else if(scene.textureMaps[textures[i] - 1 ].decalMode == "blend_kd")
+            {
+                texture_color =   get_perlin_color_mesh(    scene.textureMaps[textures[i] - 1 ] , intersection_point  );
+                new_material.diffuse =  ( texture_color/255 + new_material.diffuse  )  /2 ; 
+            }
+            else if( scene.textureMaps[textures[i] - 1 ].decalMode == "replace_ks" )
+            {
+                texture_color =  get_perlin_color_mesh(    scene.textureMaps[textures[i] - 1 ] , intersection_point  );
+                new_material.specular =  texture_color/255 ; 
+            }
+            else if( scene.textureMaps[textures[i] - 1 ].decalMode == "bump_normal" )
+            {
+                //intersection_normal = replace_normal_mesh_bump_perlin(mesh ,  scene.textureMaps[textures[i] - 1 ] , intersection_point , intersection_normal);
+            }
         }
 
     }
@@ -265,17 +289,34 @@ parser::Vec3f get_texture_color_from_sphere( parser::Scene & scene ,  int object
         }
         else //perlin
         {
+            float omega = std::acos(intersection_object_space.y /  sphere->radius); 
+            float phi = std::atan2(intersection_object_space.z ,  intersection_object_space.x); 
+
+            float hit_texcoord[2];
+            hit_texcoord[0] = (-phi + M_PI) / (2 * M_PI);
+            hit_texcoord[1] = (omega) / ( M_PI);
             //get the box
-            parser::Vec3f center = scene.vertex_data[sphere->center_vertex_id-1];
-
-            float left_x = center.x - sphere->radius;
-            float right_x = center.x + sphere->radius;
-            float bot_y = center.y - sphere->radius;
-            float up_y = center.y + sphere->radius;
-            float near_z = center.z - sphere->radius;
-            float far_z = center.z + sphere->radius;
-
-
+            
+             //parse Decal
+            if(scene.textureMaps[textures[i] - 1 ].decalMode == "replace_kd" )
+            {
+                texture_color =   get_perlin_color_sphere( sphere ,  scene.textureMaps[textures[i] - 1 ] , intersection_point  );
+                new_material.diffuse = texture_color /255; 
+            }
+            else if(scene.textureMaps[textures[i] - 1 ].decalMode == "blend_kd")
+            {
+                texture_color =   get_perlin_color_sphere( sphere ,  scene.textureMaps[textures[i] - 1 ] , intersection_point  );
+                new_material.diffuse =  ( texture_color/255 + new_material.diffuse  )  /2 ; 
+            }
+            else if( scene.textureMaps[textures[i] - 1 ].decalMode == "replace_ks" )
+            {
+                texture_color =  get_perlin_color_sphere( sphere ,  scene.textureMaps[textures[i] - 1 ] , intersection_point  );
+                new_material.specular =  texture_color/255 ; 
+            }
+            else if( scene.textureMaps[textures[i] - 1 ].decalMode == "bump_normal" )
+            {
+                intersection_normal = replace_normal_sphere_bump_perlin(sphere ,  scene.textureMaps[textures[i] - 1 ] , intersection_point , intersection_normal);
+            }
 
         }
 
@@ -518,7 +559,7 @@ parser::Vec3f replace_normal_mesh(int* v1_texcoord ,int* v2_texcoord ,int* v3_te
     parser::Vec3f N = parser::cross(B ,T);
     N = parser::normalize(N );
 
- parser::Image * img =  texturemap.image; 
+    parser::Image * img =  texturemap.image; 
     int pix_x = std::floor(u * img->w);
     int pix_y = std::floor(v * img->h);
     parser::Vec3f color1;
@@ -556,75 +597,329 @@ parser::Vec3f replace_normal_mesh(int* v1_texcoord ,int* v2_texcoord ,int* v3_te
 }
 void init_perlin_noise()
 {
-    for (size_t i = 0; i < 256; i++)
+    for (size_t i = 0; i < PERLINTABLESIZE; i++)
     {
-        permutation_table[i] = i; 
+        std::random_device seed; // Will be used to obtain a seed for the random number engine
+        std::mt19937 generator(seed()); 
+        std::uniform_real_distribution<> distribution(-1.0f , 1.0f);
+        permutation_table_temp[i] = i; 
+        gradient_vecs[i ] = parser::normalize_vec2f( parser::Vec2f( distribution(generator ) , distribution(generator ) )  );
+
     }
+    std::random_shuffle(std::begin(permutation_table_temp) , std::end(permutation_table_temp));
+    for (size_t i = 0; i < PERLINTABLESIZE; i++)
+    {
+        permutation_table[i] = permutation_table_temp[i];
+    }
+    
+    for (size_t i = PERLINTABLESIZE; i < 2*PERLINTABLESIZE; i++)
+    {
+        permutation_table[i] = permutation_table[i - PERLINTABLESIZE] ; 
+    }
+    
     // now shuffle 
-    std::random_shuffle(std::begin(permutation_table) , std::end(permutation_table));
 }
-parser::Vec3f hash_function(int index)
+parser::Vec3f hash_function(int x , int y  , int z )
 {
     parser::Vec3f vec; 
-    int index_mod = index % 8;
+    int index = permutation_table[ permutation_table[permutation_table[ std::abs(x) ] + std::abs(y)] + std::abs(z)    ];
+    int index_mod = index % 12;
     if( index_mod == 0 )
     {
         vec.x = 1.0f;
-        vec.y = 0.0f;
+        vec.y = 1.0f;
         vec.z = 0.0f;
-
     }
     else if( index_mod == 1 )
     {
         vec.x = -1.0f;
-        vec.y = 0.0f;
+        vec.y = 1.0f;
         vec.z = 0.0f;
-
     }
     else if( index_mod == 2 )
     {
-        vec.x = 0.0f;
-        vec.y = 1.0f;
+        vec.x = 1.0f;
+        vec.y = -1.0f;
         vec.z = 0.0f;
-        
-
     }
     else if( index_mod == 3 )
     {
-        vec.x = 0.0f;
+        vec.x = -1.0f;
         vec.y = -1.0f;
         vec.z = 0.0f;
-
     }
-    else if( index_mod == 4 )
+     else if( index_mod == 4 )
     {
-        vec.x = 0.0f;
+        vec.x = 1.0f;
         vec.y = 0.0f;
         vec.z = 1.0f;
 
     }
-    else if( index_mod == 5 )
+     else if( index_mod == 5 )
     {
-        vec.x = 0.0f;
+        vec.x = -1.0f;
+        vec.y = 0.0f;
+        vec.z = 1.0f;
+    }
+     else if( index_mod == 6 )
+    {
+        vec.x = 1.0f;
         vec.y = 0.0f;
         vec.z = -1.0f;
-
     }
-    else if( index_mod == 6 )
+     else if( index_mod == 7 )
     {
-        vec.x = 1.0f;
+      vec.x = -1.0f;
         vec.y = 0.0f;
-        vec.z = 1.0f;
-        vec = parser::normalize(vec);
-
+        vec.z = -1.0f;
     }
-    else if( index_mod == 7 )
+      else if( index_mod == 8 )
     {
-        vec.x = 1.0f;
+        vec.x = 0.0f;
         vec.y = 1.0f;
         vec.z = 1.0f;
-        vec = parser::normalize(vec);
     }
-    return vec;
+      else if( index_mod == 9 )
+    {
+        vec.x = 0.0f;
+        vec.y = -1.0f;
+        vec.z = 1.0f;
+    }
+      else if( index_mod == 10 )
+    {
+        vec.x = 0.0f;
+        vec.y = 1.0f;
+        vec.z = -1.0f;
+    }
+      else if( index_mod == 11 )
+    {
+        vec.x = 0.0f;
+        vec.y = -1.0f;
+        vec.z = -1.0f;
+    }
+    return vec; 
+}
+float high_order_interpolation(float x )
+{
+    if( std::abs(x) >= 1 )
+    {
+        return 0; 
+    }
+    x = std::abs(x);
+    x =  ( -6 * std::pow(x , 5) )  + (15 * std::pow(x , 4) ) - (10 * std::pow(x , 3 ) )  + 1;
+    return x;
 
+}
+parser::Vec3f get_perlin_color_sphere(parser::Sphere * sphere , parser::TextureMap & texturemap ,  parser::Vec3f hit_point   )
+{
+    float noiseScale = texturemap.noiseScale;
+    std::string noiseConversion = texturemap.noiseConversion;
+    
+    // map u v to PERLINTABLESIZE * PERLINTABLESIZE components   
+    // bot u and v are 0 to 1 
+
+    hit_point = hit_point * noiseScale;
+
+    int xi = std::floor(hit_point.x);
+    int yi = std::floor(hit_point.y);
+    int zi = std::floor(hit_point.z);
+    
+    float x_off = hit_point.x - xi; 
+    float y_off = hit_point.y - yi; 
+    float z_off = hit_point.z - zi; 
+
+    //get gradient vectors front face
+    parser::Vec3f  left_bot_front = hash_function(xi , yi , zi );
+    parser::Vec3f  right_bot_front = hash_function(xi + 1 , yi , zi );
+    parser::Vec3f  right_top_front = hash_function(xi + 1 , yi +1 , zi );
+    parser::Vec3f  left_top_front = hash_function(xi  , yi + 1 , zi );
+    //get gradient vectors back face 
+    parser::Vec3f  left_bot_back = hash_function(xi , yi , zi + 1 );
+    parser::Vec3f  right_bot_back = hash_function(xi + 1 , yi , zi + 1 );
+    parser::Vec3f  right_top_back = hash_function(xi + 1 , yi +1 , zi + 1 );
+    parser::Vec3f  left_top_back = hash_function(xi  , yi + 1 , zi + 1  );
+
+    // now generate 8 other vectors
+    parser::Vec3f normalized_hit( x_off , y_off , z_off );
+    parser::Vec3f hit_left_bot_front = normalized_hit - parser::Vec3f(0.0f,0.0f,0.0f) ;
+    parser::Vec3f  hit_right_bot_front = normalized_hit - parser::Vec3f(1.0f,0.0f,0.0f);
+    parser::Vec3f  hit_right_top_front = normalized_hit -parser::Vec3f(1.0f,1.0f,0.0f);
+    parser::Vec3f  hit_left_top_front = normalized_hit -parser::Vec3f(0.0f,1.0f,0.0f);
+
+    parser::Vec3f hit_left_bot_back = normalized_hit - parser::Vec3f(0.0f,0.0f,1.0f);
+    parser::Vec3f  hit_right_bot_back = normalized_hit - parser::Vec3f(1.0f,0.0f,1.0f);
+    parser::Vec3f  hit_right_top_back = normalized_hit -parser::Vec3f(1.0f,1.0f,1.0f);
+    parser::Vec3f  hit_left_top_back = normalized_hit -parser::Vec3f(0.0f,1.0f,1.0f);
+
+    // dot prodcuts
+    float dot_left_bot_front = parser::dot(left_bot_front , hit_left_bot_front);
+    float dot_right_bot_front = parser::dot(right_bot_front , hit_right_bot_front);
+    float dot_right_top_front = parser::dot(right_top_front , hit_right_top_front);
+    float dot_left_top_front = parser::dot(left_top_front , hit_left_top_front);
+
+    float dot_left_bot_back = parser::dot(left_bot_back , hit_left_bot_back);
+    float dot_right_bot_back = parser::dot(right_bot_back , hit_right_bot_back);
+    float dot_right_top_back = parser::dot(right_top_back , hit_right_top_back);
+    float dot_left_top_back = parser::dot(left_top_back , hit_left_top_back);
+    
+    float w0 = high_order_interpolation(std::abs(hit_point.x - xi )) * high_order_interpolation( std::abs(hit_point.y - yi) ) * high_order_interpolation(std::abs(hit_point.z - zi) );
+    float w1 = high_order_interpolation(std::abs(hit_point.x - (xi+1))  ) * high_order_interpolation(std::abs( hit_point.y - yi) ) * high_order_interpolation(std::abs(hit_point.z - zi) ); 
+    float w2 = high_order_interpolation(std::abs(hit_point.x - (xi+1)) ) * high_order_interpolation(std::abs(hit_point.y - (yi+1) ) ) * high_order_interpolation(std::abs(hit_point.z - zi) ); 
+    float w3 = high_order_interpolation(std::abs(hit_point.x - (xi)) ) * high_order_interpolation(std::abs( hit_point.y - (yi+1) ) ) * high_order_interpolation(std::abs(hit_point.z - zi) ); 
+
+    float w4 = high_order_interpolation(std::abs(hit_point.x - xi ) ) * high_order_interpolation(std::abs(hit_point.y - yi)) * high_order_interpolation(std::abs(hit_point.z -  ( zi + 1 )  ));
+    float w5 = high_order_interpolation(std::abs(hit_point.x - (xi+1)) ) * high_order_interpolation(std::abs(hit_point.y - yi)) * high_order_interpolation(std::abs(hit_point.z -  ( zi +1 )) ); 
+    float w6 = high_order_interpolation(std::abs(hit_point.x - (xi+1)) ) * high_order_interpolation(std::abs(hit_point.y - (yi+1))) * high_order_interpolation(std::abs(hit_point.z - (zi+1)) ); 
+    float w7 = high_order_interpolation(std::abs(hit_point.x - (xi)  )) * high_order_interpolation(std::abs(hit_point.y - (yi+1) )) * high_order_interpolation(std::abs(hit_point.z - (zi+1)) ); 
+
+    float result = w0 *dot_left_bot_front + w1 *dot_right_bot_front + w2 *dot_right_top_front + w3 *dot_left_top_front + w4 * dot_left_bot_back + w5 * dot_right_bot_back + w6 *dot_right_top_back + w7 * dot_left_top_back   ; 
+    if( noiseConversion == "linear")
+    {
+        result = (result + 1) / 2;
+    }
+    else if( noiseConversion == "absval")
+    {
+        result = std::abs(result);
+    }
+    result = result * 255; 
+    return parser::Vec3f( result ,result, result );
+}
+
+parser::Vec3f parse_background(  const parser::Camera &current_camera , Ray  ray,  parser::Vec3f  interval_row, parser::Vec3f  interval_col  )
+{
+    float distance_multiplier = 1e3;
+     
+    //calculate right vector
+    parser::Vec3f cam_up = parser::normalize(parser::Vec3f(current_camera.up.x,current_camera.up.y,current_camera.up.z));
+    parser::Vec3f cam_gaze = parser::normalize(parser::Vec3f(current_camera.gaze.x,current_camera.gaze.y,current_camera.gaze.z));
+
+    
+    parser::Vec3f right_vec = parser::normalize(parser::cross(cam_gaze , cam_up ));
+    //find the intersection with the image
+    parser::Vec3f intersection =  parser::Vec3f(current_camera.position.x , current_camera.position.y , current_camera.position.z   )  +  cam_gaze *  current_camera.near_distance * distance_multiplier;
+    
+    interval_row = interval_row * distance_multiplier;
+    interval_col = interval_col * distance_multiplier;
+
+
+    //now get to the (0 ,0 ) 
+    
+    // but we cannot use right we need left
+    parser::Vec3f left_vec = parser::Vec3f( -1 * right_vec.x , -1 * right_vec.y , -1 * right_vec.z  );
+
+    // check how much we need to go left
+    float left = current_camera.near_plane.x;
+    float right = current_camera.near_plane.y;
+    float bottom = current_camera.near_plane.z;
+    float top = current_camera.near_plane.w;
+    
+    parser::Vec3f top_left_corner = intersection + left_vec * right + cam_up * top;
+    parser::Vec3f top_right_corner =  top_left_corner + interval_row *  current_camera.image_width ;
+    parser::Vec3f bot_left_corner =  top_left_corner + interval_col *  current_camera.image_height ;
+    parser::Vec3f bot_right_corner =  bot_left_corner + interval_row *  current_camera.image_width ;
+
+    int a =1; 
+}
+parser::Vec3f replace_normal_sphere_bump_perlin(parser::Sphere * sphere , parser::TextureMap & texturemap ,  parser::Vec3f hit_point , parser::Vec3f  hit_normal)
+{
+    //parser::Vec3f h = get_perlin_color_sphere(sphere , texturemap , hit_point);
+
+    float epsilon = 0.001f;
+    parser::Vec3f gradient;
+    parser::Vec3f hit_point_x_iterate = hit_point;
+    hit_point_x_iterate.x = hit_point_x_iterate.x + epsilon;   
+    parser::Vec3f hit_point_y_iterate = hit_point; 
+    hit_point_y_iterate.y = hit_point_y_iterate.y + epsilon;   
+    parser::Vec3f hit_point_z_iterate = hit_point; 
+    hit_point_z_iterate.z = hit_point_z_iterate.z + epsilon;   
+
+    parser::Vec3f grad_x =  get_perlin_color_sphere(sphere , texturemap , hit_point_x_iterate) - get_perlin_color_sphere(sphere , texturemap , hit_point);
+    gradient.x = grad_x.x; 
+    parser::Vec3f grad_y =  get_perlin_color_sphere(sphere , texturemap , hit_point_y_iterate) - get_perlin_color_sphere(sphere , texturemap , hit_point);
+    gradient.y = grad_y.x;
+    parser::Vec3f grad_z =  get_perlin_color_sphere(sphere , texturemap , hit_point_z_iterate) - get_perlin_color_sphere(sphere , texturemap , hit_point);
+    gradient.z = grad_z.x; 
+
+    gradient = parser::normalize(gradient);
+    hit_normal = parser::normalize(hit_normal);
+    parser::Vec3f g__ =  hit_normal * parser::dot(gradient , hit_normal); // g||
+    g__ = parser::normalize(g__);
+    parser::Vec3f surface_gradient = gradient - g__  ;
+    surface_gradient = parser::normalize(surface_gradient);
+
+    return surface_gradient;
+}
+parser::Vec3f get_perlin_color_mesh( parser::TextureMap & texturemap ,  parser::Vec3f hit_point   )
+{   
+    float noiseScale = texturemap.noiseScale;
+    std::string noiseConversion = texturemap.noiseConversion;
+    
+    // map u v to PERLINTABLESIZE * PERLINTABLESIZE components   
+    // bot u and v are 0 to 1 
+
+    hit_point = hit_point * noiseScale;
+
+    int xi = std::floor(hit_point.x);
+    int yi = std::floor(hit_point.y);
+    int zi = std::floor(hit_point.z);
+    
+    float x_off = hit_point.x - xi; 
+    float y_off = hit_point.y - yi; 
+    float z_off = hit_point.z - zi; 
+
+    //get gradient vectors front face
+    parser::Vec3f  left_bot_front = hash_function(xi , yi , zi );
+    parser::Vec3f  right_bot_front = hash_function(xi + 1 , yi , zi );
+    parser::Vec3f  right_top_front = hash_function(xi + 1 , yi +1 , zi );
+    parser::Vec3f  left_top_front = hash_function(xi  , yi + 1 , zi );
+    //get gradient vectors back face 
+    parser::Vec3f  left_bot_back = hash_function(xi , yi , zi + 1 );
+    parser::Vec3f  right_bot_back = hash_function(xi + 1 , yi , zi + 1 );
+    parser::Vec3f  right_top_back = hash_function(xi + 1 , yi +1 , zi + 1 );
+    parser::Vec3f  left_top_back = hash_function(xi  , yi + 1 , zi + 1  );
+
+    // now generate 8 other vectors
+    parser::Vec3f normalized_hit( x_off , y_off , z_off );
+    parser::Vec3f hit_left_bot_front = normalized_hit - parser::Vec3f(0.0f,0.0f,0.0f) ;
+    parser::Vec3f  hit_right_bot_front = normalized_hit - parser::Vec3f(1.0f,0.0f,0.0f);
+    parser::Vec3f  hit_right_top_front = normalized_hit -parser::Vec3f(1.0f,1.0f,0.0f);
+    parser::Vec3f  hit_left_top_front = normalized_hit -parser::Vec3f(0.0f,1.0f,0.0f);
+
+    parser::Vec3f hit_left_bot_back = normalized_hit - parser::Vec3f(0.0f,0.0f,1.0f);
+    parser::Vec3f  hit_right_bot_back = normalized_hit - parser::Vec3f(1.0f,0.0f,1.0f);
+    parser::Vec3f  hit_right_top_back = normalized_hit -parser::Vec3f(1.0f,1.0f,1.0f);
+    parser::Vec3f  hit_left_top_back = normalized_hit -parser::Vec3f(0.0f,1.0f,1.0f);
+
+    // dot prodcuts
+    float dot_left_bot_front = parser::dot(left_bot_front , hit_left_bot_front);
+    float dot_right_bot_front = parser::dot(right_bot_front , hit_right_bot_front);
+    float dot_right_top_front = parser::dot(right_top_front , hit_right_top_front);
+    float dot_left_top_front = parser::dot(left_top_front , hit_left_top_front);
+
+    float dot_left_bot_back = parser::dot(left_bot_back , hit_left_bot_back);
+    float dot_right_bot_back = parser::dot(right_bot_back , hit_right_bot_back);
+    float dot_right_top_back = parser::dot(right_top_back , hit_right_top_back);
+    float dot_left_top_back = parser::dot(left_top_back , hit_left_top_back);
+    
+    float w0 = high_order_interpolation(std::abs(hit_point.x - xi )) * high_order_interpolation( std::abs(hit_point.y - yi) ) * high_order_interpolation(std::abs(hit_point.z - zi) );
+    float w1 = high_order_interpolation(std::abs(hit_point.x - (xi+1))  ) * high_order_interpolation(std::abs( hit_point.y - yi) ) * high_order_interpolation(std::abs(hit_point.z - zi) ); 
+    float w2 = high_order_interpolation(std::abs(hit_point.x - (xi+1)) ) * high_order_interpolation(std::abs(hit_point.y - (yi+1) ) ) * high_order_interpolation(std::abs(hit_point.z - zi) ); 
+    float w3 = high_order_interpolation(std::abs(hit_point.x - (xi)) ) * high_order_interpolation(std::abs( hit_point.y - (yi+1) ) ) * high_order_interpolation(std::abs(hit_point.z - zi) ); 
+
+    float w4 = high_order_interpolation(std::abs(hit_point.x - xi ) ) * high_order_interpolation(std::abs(hit_point.y - yi)) * high_order_interpolation(std::abs(hit_point.z -  ( zi + 1 )  ));
+    float w5 = high_order_interpolation(std::abs(hit_point.x - (xi+1)) ) * high_order_interpolation(std::abs(hit_point.y - yi)) * high_order_interpolation(std::abs(hit_point.z -  ( zi +1 )) ); 
+    float w6 = high_order_interpolation(std::abs(hit_point.x - (xi+1)) ) * high_order_interpolation(std::abs(hit_point.y - (yi+1))) * high_order_interpolation(std::abs(hit_point.z - (zi+1)) ); 
+    float w7 = high_order_interpolation(std::abs(hit_point.x - (xi)  )) * high_order_interpolation(std::abs(hit_point.y - (yi+1) )) * high_order_interpolation(std::abs(hit_point.z - (zi+1)) ); 
+
+    float result = w0 *dot_left_bot_front + w1 *dot_right_bot_front + w2 *dot_right_top_front + w3 *dot_left_top_front + w4 * dot_left_bot_back + w5 * dot_right_bot_back + w6 *dot_right_top_back + w7 * dot_left_top_back   ; 
+    if( noiseConversion == "linear")
+    {
+        result = (result + 1) / 2;
+    }
+    else if( noiseConversion == "absval")
+    {
+        result = std::abs(result);
+    }
+    result = result * 255; 
+    return parser::Vec3f( result ,result, result );
 }
