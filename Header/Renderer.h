@@ -5,6 +5,8 @@
 #include "../Header/Prototypes.h"
 #include "../Header/Ray.h"
 #include "../Header/BVH.h"
+#include "../Header/Tonemap.h"
+#include "../Header/EnvironmentalLight.h"
 #include <random>
 static parser::Vec3f color_pixel_BVH(parser::Scene& scene , Ray & ray, BVH::BoundingBoxTree *&  node  );
 
@@ -52,12 +54,19 @@ static void generate_image(parser::Scene & scene)
         int num_samples = current_camera.number_of_samples; 
         int num_samples_sqrt = std::sqrt(num_samples); // we will use this
         unsigned char* image = new unsigned char [width * height * 3  ];
+        float* tonemap_image = new  float[width * height * 3 ];
+        std::vector<float> luminances; //100 luminances
         //HW2
         //create bvh tree
         //BVH::BoundingBoxTree boxtree;
        //BVH::BoundingBoxTree* head_node = &boxtree; 
         //BVH::generate_BVH_tree(scene ,head_node );
         bounding_boxes =  BVH::generate_bounding_boxes( scene  );
+
+        if(scene.spheredir_lights.size() > 0 )
+        {
+            sphere_env_open_hdr( scene.images[scene.spheredir_lights[0].image_id].path );
+        }
         for (size_t y = 0; y < height; y++)
         {
             for (size_t x = 0; x < width; x++)
@@ -105,14 +114,35 @@ static void generate_image(parser::Scene & scene)
                     color = color +  color_pixel(scene  , ray);
                 }
                 
-                color = color / num_samples ;
-                color.x = std::min( 249.0f , color.x );
-                color.y = std::min( 249.0f , color.y );
-                color.z = std::min( 249.0f , color.z );
+                if( color.x == -1.0f ) //replace background 
+                {
+                   color.x = scene.background.image->image[i];
+                   color.y =  scene.background.image->image[i + 1] ;
+                   color.z =  scene.background.image->image[i + 2] ;
+                }
+                else //general case 
+                {
+                    color = color / num_samples ;
+                    if( current_camera.tonemap.tmo == "")
+                    {
+                        color.x = std::min( 249.0f , color.x );
+                        color.y = std::min( 249.0f , color.y );
+                        color.z = std::min( 249.0f , color.z );
+                    }
+                }
+                if( current_camera.tonemap.tmo == "")
+                {
+                    image[i ++ ] = (unsigned char) (color.x);
+                    image[i ++ ] = (unsigned char) (color.y);
+                    image[i ++ ] = (unsigned char) (color.z);
+                }
+                else
+                {
 
-                image[i ++ ] = (unsigned char) (color.x);
-                image[i ++ ] = (unsigned char) (color.y);
-                image[i ++ ] = (unsigned char) (color.z);
+                    tonemap_image[i++] = color.x;
+                    tonemap_image[i++] = color.y;
+                    tonemap_image[i++] = color.z;
+                }
                /*  //initilaize recursion depth
                 max_recursion_depth = scene.max_recursion_depth;
                 // initialize the ray
@@ -131,11 +161,37 @@ static void generate_image(parser::Scene & scene)
         //BVH::delete_boxes(head_node);
         //save the written image
         //stbi_write_png(current_camera.image_name.c_str() , width * num_samples_sqrt, height * num_samples_sqrt,3 , image , width * num_samples_sqrt *  3  );
-        stbi_write_png(current_camera.image_name.c_str() , width , height,3 , image , width  *  3  );
-        
+        if( current_camera.tonemap.tmo == "")
+        {
+            stbi_write_png(current_camera.image_name.c_str() , width , height,3 , image , width  *  3  );
+        }
+        else //tonemap
+        {
+            // 1 - calculate average world luminance
+            int i = 0; 
+            double average_world_lum = average_world_luminance(tonemap_image , width , height , luminances);
+            for (size_t y = 0; y < height; y++)
+            {
+                for (size_t x = 0; x < width; x++)
+                {
+                    parser::Vec3f color( tonemap_image[i ] , tonemap_image[i + 1] , tonemap_image[i + 2]);
+                    parser::Vec3f tonemapped_color = apply_tonemap(  color ,current_camera  ,  average_world_lum  , luminances );
+                    image[i++] = (unsigned char)tonemapped_color.x;
+                    image[i++] = (unsigned char)tonemapped_color.y;
+                    image[i++] = (unsigned char)tonemapped_color.z;
+                }
+            }
+            stbi_write_png( current_camera.image_name.c_str() , width , height,3 , image , width  *  3  );
+            
+        }
         
         //in the end just reallocate the image
+        if(scene.spheredir_lights.size() > 0 )
+        {
+            release_sphere_env();
+        }
         delete[] image; 
+        delete[] tonemap_image; 
     }
 }
 
@@ -243,14 +299,19 @@ static parser::Vec3f color_pixel(parser::Scene& scene , Ray & ray )
     int object_id = -1; 
     bool  is_object_hit = ray_object_intersection( ray , scene ,  hit_point , normal  , material   , object_id , hit_face, is_shadow_rays_active);
     if( !is_object_hit)
-    {   
-        if(parser::is_texture_background)
+    {
+        if( scene.spheredir_lights.size() > 0 ) // if env spherical 
+        {
+            return spherical_background(ray.direction);
+        }   
+        else if(!scene.is_texture_background)
         {
         return parser::Vec3f(scene.background_color.x, scene.background_color.y , scene.background_color.z );
         }
         else
         {
-            return parse_background( current_camera , ray , global_interval_row , global_interval_col    );
+            //return parse_background( current_camera , ray , global_interval_row , global_interval_col    );
+            return parser::Vec3f(-1.0f ,0.0f ,0.0f );
         }
     }
 
@@ -309,10 +370,12 @@ static parser::Vec3f color_pixel(parser::Scene& scene , Ray & ray )
             cosine_alpha = std::max(0.0f , cosine_alpha);
             diffuse = diffuse * cosine_alpha; 
         }
-        //clamp diffuse
-        diffuse.x = std::min(255.0f , diffuse.x );
-        diffuse.y = std::min(255.0f , diffuse.y );
-        diffuse.z = std::min(255.0f , diffuse.z );
+        if( current_camera.tonemap.tmo == "") //empty 
+        {//clamp diffuse
+            diffuse.x = std::min(255.0f , diffuse.x );
+            diffuse.y = std::min(255.0f , diffuse.y );
+            diffuse.z = std::min(255.0f , diffuse.z );
+        }
 
 
         // specular 
@@ -333,14 +396,17 @@ static parser::Vec3f color_pixel(parser::Scene& scene , Ray & ray )
         {
             specular =    parser::Vec3f( specular.x * scene.point_lights[i].intensity.x , specular.y * scene.point_lights[i].intensity.y  , specular.z * scene.point_lights[i].intensity.z ) / (parser::distance(light_pos , hit_point )*parser::distance(light_pos, hit_point)  ) * std::pow( cosine_h_n , phong_exponent   );  
         }
-        //clamp diffuse
-        specular.x = std::min(255.0f , specular.x );
-        specular.y = std::min(255.0f , specular.y );
-        specular.z = std::min(255.0f , specular.z );
-        
-         
-        color =  color + diffuse  + specular  ;   
+        if( current_camera.tonemap.tmo == "") //empty 
+        {
+            //clamp diffuse
+            specular.x = std::min(255.0f , specular.x );
+            specular.y = std::min(255.0f , specular.y );
+            specular.z = std::min(255.0f , specular.z );
+        }
 
+        //unutma !! 
+        //color =  color + diffuse  + specular  ;   
+        color = color + texture_color;
 
     }
     // for each area light
@@ -430,6 +496,194 @@ static parser::Vec3f color_pixel(parser::Scene& scene , Ray & ray )
         color =  color + diffuse  + specular  ; 
 
     }
+    //  for each directional light 
+    is_shadow_rays_active = true; 
+    for (size_t i = 0; i < scene.directional_lights.size(); i++)
+    {
+         // cast  shadow ray
+        Ray shadow_ray(hit_point , hit_point - scene.directional_lights[i].direction );
+        shadow_ray.time_parameter = ray.time_parameter;
+        
+        // else you directly went to a light
+        
+        parser::Vec3f hit_point_temp; 
+        parser::Face hit_face_temp; 
+        parser::Vec3f normal_temp;
+        parser::Material material_temp;  
+        bool  is_object_hit = ray_object_intersection( shadow_ray , scene ,  hit_point_temp , normal_temp , material_temp , object_id , hit_face_temp ,  is_shadow_rays_active);
+        
+        if( is_object_hit ) // it is in shadow no contribution from light
+        {
+                continue; 
+        }
+        
+        // diffuse 
+        parser::Vec3f diffuse = parser::Vec3f( material.diffuse.x , material.diffuse.y, material.diffuse.z);
+        float cosine_alpha = parser::dot(shadow_ray.direction  ,  normal ) / (parser::length(shadow_ray.direction) * parser::length(normal)  ) ; //normal vectors
+        
+        if( is_intersection_textured )
+        {
+            diffuse = parser::Vec3f( texture_material.diffuse.x * scene.directional_lights[i].radiance.x , texture_material.diffuse.y *  scene.directional_lights[i].radiance.y , texture_material.diffuse.z *   scene.directional_lights[i].radiance.z) ;
+            //clamp cosine alpha
+            cosine_alpha = std::max(0.0f , cosine_alpha);
+            diffuse = diffuse * cosine_alpha; 
+
+        }
+        else
+        {
+            diffuse = parser::Vec3f( diffuse.x * scene.directional_lights[i].radiance.x , diffuse.y *  scene.directional_lights[i].radiance.y ,diffuse.z *   scene.directional_lights[i].radiance.z) ;
+             //clamp cosine alpha
+            cosine_alpha = std::max(0.0f , cosine_alpha);
+            diffuse = diffuse * cosine_alpha; 
+        }
+        if( current_camera.tonemap.tmo == "") //empty 
+            {//clamp diffuse
+            diffuse.x = std::min(255.0f , diffuse.x );
+            diffuse.y = std::min(255.0f , diffuse.y );
+            diffuse.z = std::min(255.0f , diffuse.z );
+        }
+
+
+        // specular 
+        // specular 
+        parser::Vec3f specular = parser::Vec3f( material.specular.x , material.specular.y, material.specular.z);
+        float phong_exponent = material.phong_exponent; 
+
+        parser::Vec3f viewpos = parser::normalize(ray.origin - hit_point); 
+        parser::Vec3f h =  parser::normalize( shadow_ray.direction + viewpos ); // this might be flawed 
+        float cosine_h_n = parser::dot(h , normal) /  ( parser::length(h) * parser::length(normal) ); // they re both normalised but just in case
+        //clamp cosine
+        cosine_h_n = std::max(0.0f , cosine_h_n );
+        if( is_intersection_textured )
+        {
+            specular =    parser::Vec3f(  texture_material.specular.x * scene.directional_lights[i].radiance.x , texture_material.specular.y * scene.directional_lights[i].radiance.y  , texture_material.specular.z * scene.directional_lights[i].radiance.z ) * std::pow( cosine_h_n , phong_exponent   );  
+        }
+        else
+        {
+            specular =    parser::Vec3f( specular.x * scene.directional_lights[i].radiance.x , specular.y * scene.directional_lights[i].radiance.y  , specular.z * scene.directional_lights[i].radiance.z )  * std::pow( cosine_h_n , phong_exponent   );  
+        }
+        if( current_camera.tonemap.tmo == "") //empty 
+        {
+            //clamp specular
+            specular.x = std::min(255.0f , specular.x );
+            specular.y = std::min(255.0f , specular.y );
+            specular.z = std::min(255.0f , specular.z );
+        }
+         
+        color =  color + diffuse  + specular  ;   
+    }
+    is_shadow_rays_active = true; 
+    for (size_t i = 0; i < scene.spot_lights.size(); i++)
+    {
+         // cast  shadow ray
+        Ray shadow_ray(hit_point , scene.spot_lights[i].position );
+        shadow_ray.time_parameter = ray.time_parameter;
+        
+        // else you directly went to a light
+        
+        parser::Vec3f hit_point_temp; 
+        parser::Face hit_face_temp; 
+        parser::Vec3f normal_temp;
+        parser::Material material_temp;  
+        bool  is_object_hit = ray_object_intersection( shadow_ray , scene ,  hit_point_temp , normal_temp , material_temp , object_id , hit_face_temp ,  is_shadow_rays_active);
+        
+        if( is_object_hit ) // it is in shadow no contribution from light
+        {
+            if( parser::distance(hit_point_temp , hit_point) < parser::distance(hit_point, scene.spot_lights[i].position) ) //before light source 
+            {
+                continue; 
+            }
+        }
+        // calculate the angle between hitpoint and spot
+        parser::Vec3f spot_to_hit = hit_point - scene.spot_lights[i].position;
+        float alpha_for_spot = parser::dot(spot_to_hit ,scene.spot_lights[i].direction ) / ( parser::length(spot_to_hit ) * parser::length(scene.spot_lights[i].direction ));
+        //now calculate if L1 L2 or L3
+        float alpha_for_spot_value = std::acos(alpha_for_spot) * 180/M_PI;
+        parser::Vec3f irradiance;
+        if(  alpha_for_spot_value <= scene.spot_lights[i].fallofAngle/2  && alpha_for_spot_value >= -scene.spot_lights[i].fallofAngle/2   ) //L1 
+        {
+            //L1
+            irradiance = scene.spot_lights[i].intensity / parser::length(spot_to_hit);
+        }
+        else if( alpha_for_spot_value <= scene.spot_lights[i].coverageAngle/2 && alpha_for_spot_value >= scene.spot_lights[i].coverageAngle/2 ) 
+        {
+            float cos_fallof_2 = std::cos( M_PI/180 * scene.spot_lights[i].fallofAngle/2  );
+            float cos_cover_2 = std::cos( M_PI/180 * scene.spot_lights[i].coverageAngle/2  );
+
+            float s = std::pow( (alpha_for_spot - cos_fallof_2 ) / (cos_fallof_2 - cos_cover_2)    , 4 );
+            //L2
+            irradiance =  scene.spot_lights[i].intensity / parser::length(spot_to_hit) * s;
+        }
+        else 
+        {
+            //L3
+            irradiance.x = 0.0f;
+            irradiance.y = 0.0f;
+            irradiance.z = 0.0f;
+
+        }
+
+        // diffuse 
+        parser::Vec3f diffuse = parser::Vec3f( material.diffuse.x , material.diffuse.y, material.diffuse.z);
+        float cosine_alpha = parser::dot(shadow_ray.direction  ,  normal ) / (parser::length(shadow_ray.direction) * parser::length(normal)  ) ; //normal vectors
+        
+        if( is_intersection_textured )
+        {
+            diffuse = parser::Vec3f( texture_material.diffuse.x * irradiance.x , texture_material.diffuse.y *  irradiance.y , texture_material.diffuse.z *   irradiance.z) ;
+            //clamp cosine alpha
+            cosine_alpha = std::max(0.0f , cosine_alpha);
+            diffuse = diffuse * cosine_alpha; 
+
+        }
+        else
+        {
+            diffuse = parser::Vec3f( diffuse.x * irradiance.x , diffuse.y *  irradiance.y ,diffuse.z *   irradiance.z) ;
+             //clamp cosine alpha
+            cosine_alpha = std::max(0.0f , cosine_alpha);
+            diffuse = diffuse * cosine_alpha; 
+        }
+        if( current_camera.tonemap.tmo == "") //empty 
+            {//clamp diffuse
+            diffuse.x = std::min(255.0f , diffuse.x );
+            diffuse.y = std::min(255.0f , diffuse.y );
+            diffuse.z = std::min(255.0f , diffuse.z );
+        }
+
+
+        // specular 
+        parser::Vec3f specular = parser::Vec3f( material.specular.x , material.specular.y, material.specular.z);
+        float phong_exponent = material.phong_exponent; 
+
+        parser::Vec3f viewpos = parser::normalize(ray.origin - hit_point); 
+        parser::Vec3f h =  parser::normalize( shadow_ray.direction + viewpos ); // this might be flawed 
+        float cosine_h_n = parser::dot(h , normal) /  ( parser::length(h) * parser::length(normal) ); // they re both normalised but just in case
+        //clamp cosine
+        cosine_h_n = std::max(0.0f , cosine_h_n );
+        if( is_intersection_textured )
+        {
+            specular =    parser::Vec3f(  texture_material.specular.x * irradiance.x , texture_material.specular.y * irradiance.y  , texture_material.specular.z * irradiance.z ) * std::pow( cosine_h_n , phong_exponent   );  
+        }
+        else
+        {
+            specular =    parser::Vec3f( specular.x * irradiance.x , specular.y * irradiance.y  , specular.z * irradiance.z )  * std::pow( cosine_h_n , phong_exponent   );  
+        }
+        if( current_camera.tonemap.tmo == "") //empty 
+        {
+            //clamp specular
+            specular.x = std::min(255.0f , specular.x );
+            specular.y = std::min(255.0f , specular.y );
+            specular.z = std::min(255.0f , specular.z );
+        }
+         
+        color =  color + diffuse  + specular  ;   
+    }  
+    is_shadow_rays_active = true; 
+    for (size_t i = 0; i < scene.spheredir_lights.size(); i++)
+    {
+        //random rejection sampling
+        parser::Vec3f random_vec = get_random_vector_rejection_sampling( normal );
+        color = color + get_hdr_image_color(random_vec);
+    }
     
     if(material.is_mirror ) // do recursion
     {
@@ -470,7 +724,15 @@ static parser::Vec3f color_pixel(parser::Scene& scene , Ray & ray )
             Ray recursion_ray( hit_point + Wr * 0.001f , hit_point + Wr );
             recursion_ray.generate_time();
             parser::Vec3f recursion_color = color_pixel(scene , recursion_ray );
+            if( scene.spheredir_lights.size()  > 0 )
+            {
+            color =  parser::Vec3f( recursion_color.x  * material.mirror.x ,  recursion_color.y  * material.mirror.y  ,  recursion_color.z  * material.mirror.z ); 
+            }
+            else
+            {
             color =  color + parser::Vec3f( recursion_color.x  * material.mirror.x ,  recursion_color.y  * material.mirror.y  ,  recursion_color.z  * material.mirror.z ); 
+            }
+
         }
         
     }
@@ -556,7 +818,15 @@ static parser::Vec3f color_pixel(parser::Scene& scene , Ray & ray )
             //refraction_color =  color_pixel(scene ,refraction_ray) * refraction_ratio ;
         }
         
-        color = color  + refraction_color + reflection_color;
+        if(scene.spheredir_lights.size() > 0 )
+        {
+            color =  refraction_color + reflection_color;
+        }
+        else
+        {
+            color = color +  refraction_color + reflection_color;
+
+        }
 
     }
     else if( material.is_conductor)
@@ -620,14 +890,19 @@ static parser::Vec3f color_pixel(parser::Scene& scene , Ray & ray )
 
     }
     //clamp color
-    color.x = std::min( color.x , 255.0f );
-    color.y = std::min( color.y , 255.0f );
-    color.z = std::min( color.z , 255.0f );
+    if (current_camera.tonemap.tmo == "")
+    {
+        color.x = std::min( color.x , 255.0f );
+        color.y = std::min( color.y , 255.0f );
+        color.z = std::min( color.z , 255.0f );
 
-    //clamp to nearest integer
-    color.x = (float) ( (int ) color.x );
-    color.y = (float) ( (int ) color.y );
-    color.z = (float) ( (int ) color.z );
+            //clamp to nearest integer
+        color.x = (float) ( (int ) color.x );
+        color.y = (float) ( (int ) color.y );
+        color.z = (float) ( (int ) color.z );
+    }
+
+   
 
     return color; 
 

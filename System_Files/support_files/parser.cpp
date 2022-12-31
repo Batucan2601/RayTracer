@@ -80,8 +80,14 @@ void parser::Scene::loadFromXml(const std::string &filepath)
             child = element->FirstChildElement("ImageName");
             stream << child->GetText() << std::endl;
             child = element->FirstChildElement("NumSamples"); //assume square 
+            if( child != NULL )
+            {
             stream << child->GetText() << std::endl;
-            
+            }
+            else
+            {
+            stream << "1" << std::endl;
+            }            
             Vec3f gazePoint;  
             float fovy; 
             stream >> camera.position.x >> camera.position.y >> camera.position.z;
@@ -161,11 +167,56 @@ void parser::Scene::loadFromXml(const std::string &filepath)
             stream >> camera.number_of_samples;
             stream >> camera.focus_distance;
             stream >> camera.aperture_size;
+        }
+        //after similarities
+        auto child = element->FirstChildElement("Tonemap");
+        ToneMap tonemap;
+        //defensive 
+        if( child != NULL )
+        {
+            child = child->FirstChildElement("TMO");
+            if( child != NULL )
+            {
+                tonemap.tmo = child->GetText();
+                child = child->NextSiblingElement("TMOOptions");
+                if( child != NULL)
+                {
+                    std::istringstream iss(child->GetText());
+                    std::string trans = child->GetText();
+                    int i = 0;
+                    while(std::getline(iss , trans , ' '))
+                    {
+                        tonemap.tmoOptions[i] = std::stof(trans);
+                        i++;
+                    }
+                    child = child->NextSiblingElement("Saturation");
+                    if( child != NULL)
+                    {
+                        tonemap.saturation = std::stof(child->GetText());
+                        child = child->NextSiblingElement("Gamma");
+                        if( child != NULL )
+                        {
+                            tonemap.gama = std::stof(child->GetText());
+                        }
+                    }
+                    
+                }
+                
 
+            }
+            else
+            {
+                tonemap.tmo = "";
+            }
 
         }
-        
+        else
+        {
+            tonemap.tmo = "";
+        }
+        camera.tonemap  = tonemap;
 
+        
         cameras.push_back(camera);
         element = element->NextSiblingElement("Camera");
     }
@@ -174,7 +225,16 @@ void parser::Scene::loadFromXml(const std::string &filepath)
     //Get Lights
     element = root->FirstChildElement("Lights");
     auto child = element->FirstChildElement("AmbientLight");
-    stream << child->GetText() << std::endl;
+    if( child != NULL )
+    {   
+        stream << child->GetText() << std::endl;
+        
+    }
+    else
+    {
+        stream << "0 0 0 " << std::endl;
+    }
+
     stream >> ambient_light.x >> ambient_light.y >> ambient_light.z;
 
     //point light 
@@ -195,6 +255,43 @@ void parser::Scene::loadFromXml(const std::string &filepath)
 
         point_lights.push_back(point_light);
         element = element->NextSiblingElement("PointLight");
+    }
+
+    //directional light
+    element = root->FirstChildElement("Lights");
+    element = element->FirstChildElement("DirectionalLight");
+    DirectionalLight dirLight; 
+    while(element)
+    {
+        child = element->FirstChildElement("Direction");
+        std::istringstream iss(child->GetText());
+        std::string trans = child->GetText();
+        float arr[3];
+        int i = 0;
+        while(std::getline(iss , trans , ' '))
+        {
+            arr[i] = std::stof(trans);
+            i++;
+        }
+        dirLight.direction.x = arr[0]; 
+        dirLight.direction.y = arr[1]; 
+        dirLight.direction.z = arr[2]; 
+
+        child = element->FirstChildElement("Radiance");
+        std::istringstream iss2(child->GetText());
+        std::string trans2 = child->GetText();
+        i = 0;
+        while(std::getline(iss2 , trans2 , ' '))
+        {
+            arr[i] = std::stof(trans2);
+            i++;
+        }
+        dirLight.radiance.x = arr[0]; 
+        dirLight.radiance.y = arr[1]; 
+        dirLight.radiance.z = arr[2]; 
+
+        directional_lights.push_back(dirLight);
+        element = element->NextSiblingElement("DirectionalLight");
     }
     // area light
     element = root->FirstChildElement("Lights");
@@ -242,35 +339,142 @@ void parser::Scene::loadFromXml(const std::string &filepath)
         element = element->NextSiblingElement("AreaLight");
 
     }
+
+    element = root->FirstChildElement("Lights");
+    element = element->FirstChildElement("SpotLight");
+    while( element )
+    {
+        SpotLight spotLight; 
+        child = element->FirstChildElement("Position");
+        if( child != NULL )
+        {
+            std::istringstream iss(child->GetText());
+            std::string trans = child->GetText();
+            float arr[3];
+            int i = 0;
+            while(std::getline(iss , trans , ' '))
+            {
+                arr[i] = std::stof(trans);
+                i++;
+            }
+            spotLight.position.x = arr[0]; 
+            spotLight.position.y = arr[1]; 
+            spotLight.position.z = arr[2]; 
+        }
+        child = element->FirstChildElement("Direction");
+        if( child != NULL )
+        {
+            std::istringstream iss(child->GetText());
+            std::string trans = child->GetText();
+            float arr[3];
+            int i = 0;
+            while(std::getline(iss , trans , ' '))
+            {
+                arr[i] = std::stof(trans);
+                i++;
+            }
+            spotLight.direction.x = arr[0]; 
+            spotLight.direction.y = arr[1]; 
+            spotLight.direction.z = arr[2]; 
+        }
+        child = element->FirstChildElement("Intensity");
+        if( child != NULL )
+        {
+            std::istringstream iss(child->GetText());
+            std::string trans = child->GetText();
+            float arr[3];
+            int i = 0;
+            while(std::getline(iss , trans , ' '))
+            {
+                arr[i] = std::stof(trans);
+                i++;
+            }
+            spotLight.intensity.x = arr[0]; 
+            spotLight.intensity.y = arr[1]; 
+            spotLight.intensity.z = arr[2]; 
+        }
+        child = element->FirstChildElement("Intensity");
+        if( child != NULL )
+        {
+            spotLight.coverageAngle = std::stof(child->GetText());
+        }
+        child = element->FirstChildElement("FalloffAngle");
+        if( child != NULL )
+        {
+            spotLight.fallofAngle = std::stof(child->GetText());
+        }
+        element = element->NextSiblingElement("SpotLight");
+
+        spot_lights.push_back(spotLight);
+    }
     //get textures 
     element = root->FirstChildElement("Textures");
-    element = element->FirstChildElement("Images");
     if( element != NULL )
     {
-        element = element->FirstChildElement("Image");
-        while( element )
+        element = element->FirstChildElement("Images");
+        if( element != NULL )
         {
-            Image image; 
-            char cwd[500];
-            std::string current_path;
-            getcwd(cwd , sizeof(cwd));
-            current_path = cwd;  
-            current_path = current_path + "/hw4/inputs/";
-            current_path = current_path + element->GetText();
-            int w , h , comp;
-            image.path = current_path;   
-            image.image = stbi_load(current_path.c_str(), &w, &h, &comp, STBI_rgb);
-            image.w = w;
-            image.h = h;
-            image.comp = comp;
-            images.push_back(image);   
-            element = element->NextSiblingElement("Image");
+            element = element->FirstChildElement("Image");
+            while( element )
+            {
+                Image image; 
+                char cwd[500];
+                std::string current_path;
+                getcwd(cwd , sizeof(cwd));
+                current_path = cwd;  
+                current_path = current_path + "/hw5/inputs/";
+                current_path = current_path + element->GetText();
+                int w , h , comp;
+                image.path = current_path;   
+                if( image.path.substr(image.path.size() - 3 , image.path.size() - 1  ) != "exr" )
+                {
+                    image.is_hdr = false;
+                    image.image = stbi_load(current_path.c_str(), &w, &h, &comp, STBI_rgb);
+                    image.w = w;
+                    image.h = h;
+                    image.comp = comp;
+                }
+                else if( image.path.substr(image.path.size() - 3 , image.path.size() - 1  ) == "exr")
+                {
+                    image.is_hdr = true;
+                    const char* hdr_err; 
+                    int ret = LoadEXR(&image.hdr_img, &image.w, &image.h, image.path.c_str(), &hdr_err);
+                    if (ret != TINYEXR_SUCCESS) {
+                    if (hdr_err) {
+                    fprintf(stderr, "ERR : %s\n", hdr_err);
+                    FreeEXRErrorMessage(hdr_err); // release memory of error message.
+                    }
+                    }
+                }
+                images.push_back(image);   
+                element = element->NextSiblingElement("Image");
+            }
         }
     }
     
+    
+    element = root->FirstChildElement("Lights");
+    element = element->FirstChildElement("SphericalDirectionalLight");
+    while(element)
+    {
+        SphericalDirectionalLight spheredir_light;
+        if( element != NULL )
+        {
+            child = element->FirstChildElement("ImageId");
+            if( child != NULL )
+            {
+                spheredir_light.image_id = std::stoi(child->GetText()) - 1;
+            }
+        }
+        spheredir_lights.push_back(spheredir_light);
+        element = element->NextSiblingElement("SphericalDirectionalLight");
+
+    }
     // get texture maps 
     element = root->FirstChildElement("Textures");
-    element = element->FirstChildElement("TextureMap");
+    if( element != NULL )
+    {
+        element = element->FirstChildElement("TextureMap");
     if( element != NULL )
     {
         while(element)
@@ -285,27 +489,6 @@ void parser::Scene::loadFromXml(const std::string &filepath)
                 child =  element->FirstChildElement("DecalMode");
                 std::string decalMode = child->GetText();
                 textureMap.decalMode = decalMode;
-                if( decalMode == "replace_background")
-                {
-                    //is_texture_background = true; 
-                    child =  element->FirstChildElement("Interpolation");
-                    textureMap.interpolation = "";
-                    if( child != NULL )
-                    {
-                        std::string interpolation = child->GetText();
-                        textureMap.interpolation = interpolation;
-                    }
-
-                    child =  element->FirstChildElement("BumpFactor");
-                    if( child != NULL )
-                    {
-                        float bumpFactor = std::stoi(child->GetText());
-                        textureMap.bumpFactor = bumpFactor;
-                    }
-                    //background = textureMap;
-                    continue; 
-                }
-                    
 
                 child =  element->FirstChildElement("Interpolation");
                 textureMap.interpolation = "";
@@ -322,10 +505,14 @@ void parser::Scene::loadFromXml(const std::string &filepath)
                     textureMap.bumpFactor = bumpFactor;
                 }
                 
-                
+                if( textureMap.decalMode == "replace_background")
+                {
+                    this->is_texture_background = true; 
+                    this->background = textureMap; 
+                }
 
             } 
-            if( element->Attribute("type" , "perlin") != NULL  )
+            if( element->Attribute("type" , "perlin") != NULL    )
             {
                 textureMap.is_image = false;
                 child =  element->FirstChildElement("NoiseConversion");
@@ -345,14 +532,74 @@ void parser::Scene::loadFromXml(const std::string &filepath)
                     textureMap.decalMode = decalMode;
                 }
                 
-
             } 
-            
+            if( element->Attribute("type" , "checkerboard") != NULL)
+            {
+                child =  element->FirstChildElement("BlackColor");
+                if( child != NULL )
+                {
+                    std::istringstream iss(child->GetText());
+                    std::string trans = child->GetText();
+                    float arr[3];
+                    int i = 0;
+                    while(std::getline(iss , trans , ' '))
+                    {
+                        arr[i] = std::stof(trans);
+                        i++;
+                    }
+                    textureMap.cb_BlackColor.x = arr[0];
+                    textureMap.cb_BlackColor.x = arr[1];
+                    textureMap.cb_BlackColor.x = arr[2];
+
+                }
+                child =  element->FirstChildElement("WhiteColor");
+                if( child != NULL )
+                {
+                    std::istringstream iss(child->GetText());
+                    std::string trans = child->GetText();
+                    float arr[3];
+                    int i = 0;
+                    while(std::getline(iss , trans , ' '))
+                    {
+                        arr[i] = std::stof(trans);
+                        i++;
+                    }
+                    textureMap.cb_WhiteColor.x = arr[0];
+                    textureMap.cb_WhiteColor.x = arr[1];
+                    textureMap.cb_WhiteColor.x = arr[2];
+
+                }
+
+                child =  element->FirstChildElement("DecalMode");
+                if( child != NULL )
+                {
+                    std::string decalMode = child->GetText();
+                    textureMap.decalMode = decalMode;
+                }
+
+                child =  element->FirstChildElement("Scale");
+                if( child != NULL )
+                {
+                    std::string scale = child->GetText();
+                    textureMap.cb_Scale = std::stof(scale);
+                }
+
+                child =  element->FirstChildElement("Offset");
+                if( child != NULL )
+                {
+                    std::string offset = child->GetText();
+                    textureMap.cb_Offset = std::stof(offset);
+                }
+                textureMap.is_checkerboard = false; 
+
+            }
             textureMaps.push_back(textureMap);
             
             element = element->NextSiblingElement("TextureMap");
         }
     }
+    }
+    
     
     //Get Materials
     element = root->FirstChildElement("Materials");
@@ -367,6 +614,8 @@ void parser::Scene::loadFromXml(const std::string &filepath)
         material.is_mirror = (element->Attribute("type", "mirror") != NULL);
         material.is_dielectric = (element->Attribute("type", "dielectric") != NULL);
         material.is_conductor = (element->Attribute("type", "conductor") != NULL);
+        material.is_degamma= (element->Attribute("type", "degamma") != NULL);
+
         child = element->FirstChildElement("AmbientReflectance");
         if( child != NULL)
         {
@@ -605,21 +854,61 @@ void parser::Scene::loadFromXml(const std::string &filepath)
         
     }
     std::cout << " rotation  done " << std::endl;
+    element = root->FirstChildElement("Transformations");
+    element = element->FirstChildElement("Composite");
+        while( element != NULL )
+        {
+            float arr[16];
+            std::istringstream iss(element->GetText());
+            std::string trans = element->GetText();
+            int i =0; 
+            while(std::getline(iss , trans , ' '))
+            {
+                arr[i] = std::stof(trans);
+                i++; 
+            }
+            Matrix s(4,4);
+            s.set(0,0 , arr[0] );
+            s.set(0,1 , arr[1] );
+            s.set(0,2 , arr[2] );
+            s.set(0,3 , arr[3] );
 
+            s.set(1,0 , arr[4] );
+            s.set(1,1 , arr[5] );
+            s.set(1,2 , arr[6] );
+            s.set(1,3 , arr[7] );
+
+            s.set(2,0 , arr[8] );
+            s.set(2,1 , arr[9] );
+            s.set(2,2 , arr[10] );
+            s.set(2,3 , arr[11] );
+
+            s.set(3,0 , arr[12] );
+            s.set(3,1 , arr[13] );
+            s.set(3,2 , arr[14] );
+            s.set(3,3 , arr[15] );
+
+            element = element->NextSiblingElement("Composite");
+            transformations.composite.push_back(s);
+        }
     }
  
     stream.clear();
     //Get VertexData
     element = root->FirstChildElement("VertexData");
-    stream << element->GetText() << std::endl;
-    Vec3f vertex;
-    while (!(stream >> vertex.x).eof() )
+    if( element != NULL )
     {
-         
-        stream >> vertex.y >> vertex.z;
-        vertex_data.push_back(vertex);
+        stream << element->GetText() << std::endl;
+        Vec3f vertex;
+        while (!(stream >> vertex.x).eof() )
+        {
+            
+            stream >> vertex.y >> vertex.z;
+            vertex_data.push_back(vertex);
 
+        }
     }
+    
     std::cout << " vertex data   done " << std::endl;
         std::cout << " here 0 " << std::endl;
 
@@ -629,7 +918,7 @@ void parser::Scene::loadFromXml(const std::string &filepath)
     if( element != NULL )
     {
         stream << element->GetText() << std::endl;
-        std::array<int, 2> tex;
+        std::array<float, 2> tex;
         while (!(stream >> tex[0]).eof() )
         {
             stream >> tex[1];
@@ -649,15 +938,22 @@ void parser::Scene::loadFromXml(const std::string &filepath)
         mesh.transformation_inverse.Identity(); // set I 
 
         child = element->FirstChildElement("Material");
+        if( child != NULL )
+        {
         mesh.material_id = std::stoi(child->GetText());
+        }
 
         child = element->FirstChildElement("Textures");
-        stream << child->GetText() << std::endl;
-        int texture_id; 
-        while( stream >> texture_id  )
+        if( child != NULL )
         {
-            mesh.textures.push_back(texture_id);
+            stream << child->GetText() << std::endl;
+            int texture_id; 
+            while( stream >> texture_id  )
+            {
+                mesh.textures.push_back(texture_id);
+            }
         }
+        
         stream.clear();
 
 
@@ -757,6 +1053,14 @@ void parser::Scene::loadFromXml(const std::string &filepath)
                 else if( first == 'r') //rotate 
                 {
                     Matrix m = transformations.rotation[no-1];
+                    mesh.transformations.push_back(m);
+
+                    mesh.transformation = m * mesh.transformation; 
+
+                }
+                else if( first == 'c') //rotate 
+                {
+                    Matrix m = transformations.composite[no-1];
                     mesh.transformations.push_back(m);
 
                     mesh.transformation = m * mesh.transformation; 

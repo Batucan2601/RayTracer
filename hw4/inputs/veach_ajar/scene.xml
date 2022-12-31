@@ -12,7 +12,7 @@
             <NearDistance>1.7321</NearDistance>
             <ImageResolution>1280 720</ImageResolution>
             <ImageName>VeachAjar.png</ImageName>
-            <NumSamples>16</NumSamples>
+            <NumSamples>1</NumSamples>
         </Camera>
     </Cameras>
 
@@ -164,7 +164,7 @@
         <Mesh id="1"> <!-- Pot -->
             <Material>6</Material>
             <Transformations>c1</Transformations>
-            <Faces plyFile="models/Mesh000.ply" />
+            <Faces plyFile="/home/batu/Desktop/RayTracer/RayTracer/hw4/inputs/veach_ajar/models/Mesh000.ply" />
         </Mesh>
 
         <MeshInstance id="1" baseMeshId="1" resetTransform="true"> <!-- Pot -->
@@ -180,88 +180,88 @@
         <Mesh id="2"> <!-- Landscape -->
             <Material>1</Material>
             <Textures>1</Textures>
-            <Faces plyFile="models/Mesh008.ply" />
+            <Faces plyFile="/home/batu/Desktop/RayTracer/RayTracer/hw4/inputs/veach_ajar/models/Mesh008.ply" />
         </Mesh>
 
         <Mesh id="3"> <!-- PictureFrame -->
             <Material>7</Material>
-            <Faces plyFile="models/Mesh013.ply" />
+            <Faces plyFile="/home/batu/Desktop/RayTracer/RayTracer/hw4/inputs/veach_ajar/models/Mesh013.ply" />
         </Mesh>
 
         <Mesh id="4"> <!-- Floor -->
             <Material>4</Material>
             <Textures>4</Textures>
             <Transformations>c4</Transformations>
-            <Faces plyFile="models/Mesh011.ply" />
+            <Faces plyFile="/home/batu/Desktop/RayTracer/RayTracer/hw4/inputs/veach_ajar/models/Mesh011.ply" />
         </Mesh>
 
         <Mesh id="5"> <!-- DoorHandle -->
             <Material>9</Material>
-            <Faces plyFile="models/Mesh015_fixed.ply" />
+            <Faces plyFile="/home/batu/Desktop/RayTracer/RayTracer/hw4/inputs/veach_ajar/models/Mesh015_fixed.ply" />
         </Mesh>
 
         <Mesh id="6"> <!-- Hinge -->
             <Material>9</Material>
-            <Faces plyFile="models/Mesh016.ply" />
+            <Faces plyFile="/home/batu/Desktop/RayTracer/RayTracer/hw4/inputs/veach_ajar/models/Mesh016.ply" />
         </Mesh>
 
         <Mesh id="7"> <!-- Hinge -->
             <Material>9</Material>
-            <Faces plyFile="models/Mesh012.ply" />
+            <Faces plyFile="/home/batu/Desktop/RayTracer/RayTracer/hw4/inputs/veach_ajar/models/Mesh012.ply" />
         </Mesh>
 
         <Mesh id="8"> <!-- Hinge -->
             <Material>9</Material>
-            <Faces plyFile="models/Mesh010.ply" />
+            <Faces plyFile="/home/batu/Desktop/RayTracer/RayTracer/hw4/inputs/veach_ajar/models/Mesh010.ply" />
         </Mesh>
 
         <Mesh id="9"> <!-- Door -->
             <Material>1</Material>
             <Textures>3</Textures>
-            <Faces plyFile="models/Mesh006.ply" />
+            <Faces plyFile="/home/batu/Desktop/RayTracer/RayTracer/hw4/inputs/veach_ajar/models/Mesh006.ply" />
         </Mesh>
 
         <Mesh id="10"> <!-- DoorFrame -->
             <Material>8</Material>
-            <Faces plyFile="models/Mesh005.ply" />
+            <Faces plyFile="/home/batu/Desktop/RayTracer/RayTracer/hw4/inputs/veach_ajar/models/Mesh005.ply" />
         </Mesh>
 
         <Mesh id="11"> <!-- TableLeg -->
             <Material>10</Material>
-            <Faces plyFile="models/Mesh007.ply" />
+            <Faces plyFile="/home/batu/Desktop/RayTracer/RayTracer/hw4/inputs/veach_ajar/models/Mesh007.ply" />
         </Mesh>
 
         <Mesh id="12"> <!-- TableLeg -->
             <Material>10</Material>
-            <Faces plyFile="models/Mesh003.ply" />
+            <Faces plyFile="/home/batu/Desktop/RayTracer/RayTracer/hw4/inputs/veach_ajar/models/Mesh003.ply" />
         </Mesh>
 
         <Mesh id="13"> <!-- TableLeg -->
             <Material>10</Material>
-            <Faces plyFile="models/Mesh002.ply" />
+            <Faces plyFile="/home/batu/Desktop/RayTracer/RayTracer/hw4/inputs/veach_ajar/models/Mesh002.ply" />
         </Mesh>
 
         <Mesh id="14"> <!-- TableLeg -->
             <Material>10</Material>
-            <Faces plyFile="models/Mesh001.ply" />
+            <Faces plyFile="/home/batu/Desktop/RayTracer/RayTracer/hw4/inputs/veach_ajar/models/Mesh001.ply" />
         </Mesh>
 
         <Mesh id="15"> <!-- Table -->
             <Material>1</Material>
             <Textures>2</Textures>
-            <Faces plyFile="models/Mesh004.ply" />
+            <Faces plyFile="/home/batu/Desktop/RayTracer/RayTracer/hw4/inputs/veach_ajar/models/Mesh004.ply" />
         </Mesh>
 
         <Mesh id="16"> <!-- Wall -->
             <Material>2</Material>
             <Transformations>c4</Transformations>
-            <Faces plyFile="models/Mesh014.ply" />
+            <Faces plyFile="/home/batu/Desktop/RayTracer/RayTracer/hw4/inputs/veach_ajar/models/Mesh014.ply" />
         </Mesh>
 
         <Mesh id="17"> <!-- Pot -->
             <Material>6</Material>
             <Transformations>c1</Transformations>
-            <Faces plyFile="models/Mesh009.ply" />
+            <Faces plyFile="/home/batu/Desktop/RayTracer/RayTracer/hw4/inputs/veach_ajar/models/Mesh009.ply" />
         </Mesh>
 
         <MeshInstance id="3" baseMeshId="17" resetTransform="true"> <!-- Pot -->

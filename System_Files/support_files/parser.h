@@ -9,6 +9,8 @@
 #include <iostream>
 #include "../support_files/happly.h"
 #include <unistd.h>
+#include "tinyexr.h"
+
 namespace parser
 {
     //Notice that all the structures are as simple as possible
@@ -75,6 +77,13 @@ namespace parser
         int col_no; 
         int row_no; 
     }; 
+    struct ToneMap
+    {
+        std::string tmo; 
+        float tmoOptions[2];
+        float saturation;
+        float gama;
+    };
     struct Camera
     {
         Vec3f position;
@@ -87,6 +96,7 @@ namespace parser
         int number_of_samples; 
         float focus_distance;
         float aperture_size;
+        ToneMap tonemap; 
 
     };
 
@@ -111,29 +121,57 @@ namespace parser
         //orthonormal bases 
         OrthonormalBasis ortho_basis; 
     };
-    struct Image
+    struct DirectionalLight
     {
+        Vec3f direction;
+        Vec3f radiance;
+    };
+    struct SpotLight
+    {
+        Vec3f position;
+        Vec3f intensity;
+        Vec3f direction;
+        float coverageAngle;
+        float fallofAngle;
+    };
+    struct Image
+    {   
+        bool is_hdr;
         std::string path;
-        unsigned char* image; 
+        unsigned char* image;
+        float* hdr_img;  
         int w, h, comp;
     };
+    struct SphericalDirectionalLight
+    {
+        int image_id; 
+    };
+    
     struct TextureMap
     {
         Image* image;
         std::string decalMode; 
         std::string interpolation;  
         bool is_image; // no if perlin yes if texture
+        bool is_checkerboard; 
         std::string noiseConversion; // no if perlin yes if texture 
         float noiseScale; // no if perlin yes if texture 
         float bumpFactor; 
+        
+        // only for checkerboard
+        float cb_Scale;
+        float cb_Offset;
+        Vec3f cb_BlackColor;
+        Vec3f cb_WhiteColor; 
+
+
     };
-    bool is_texture_background = false; 
-    TextureMap background; 
+
     struct Material
     {
-        bool is_mirror;
-        bool is_dielectric;
-        bool is_conductor;
+        bool is_mirror = false;
+        bool is_dielectric = false;
+        bool is_conductor = false;
         Vec3f ambient;
         Vec3f diffuse;
         Vec3f specular;
@@ -143,6 +181,8 @@ namespace parser
         float refraction_index;
         float absorption_index; 
         float roughness;
+        bool is_degamma = false;
+
     };
 
     struct Face
@@ -157,6 +197,8 @@ namespace parser
         std::vector<Matrix> scaling;
         std::vector<Matrix> translation;
         std::vector<Matrix> rotation; 
+        std::vector<Matrix> composite; 
+
     };
     struct Mesh
     {
@@ -219,9 +261,14 @@ namespace parser
         Vec3f ambient_light;
         std::vector<PointLight> point_lights;
         std::vector<AreaLight> area_lights;
+        std::vector<DirectionalLight> directional_lights; 
+        std::vector<SpotLight> spot_lights; 
+        std::vector<SphericalDirectionalLight> spheredir_lights; 
+
+
         std::vector<Image> images;
         std::vector<TextureMap> textureMaps;
-        std::vector<std::array<int , 2U > > texcoords; 
+        std::vector<std::array<float , 2U > > texcoords; 
 
 
         std::vector<Material> materials;
@@ -234,7 +281,8 @@ namespace parser
         //Functions
         void loadFromXml(const std::string &filepath);
 
-        
+        bool is_texture_background = false; 
+        TextureMap background;
     };
 
 

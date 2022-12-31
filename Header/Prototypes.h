@@ -34,3 +34,14 @@ parser::Vec3f get_perlin_color_sphere(parser::Sphere * sphere , parser::TextureM
 parser::Vec3f replace_normal_sphere_bump_perlin(parser::Sphere * sphere , parser::TextureMap & texturemap ,  parser::Vec3f hit_point , parser::Vec3f  hit_normal);
 parser::Vec3f parse_background(  const parser::Camera &current_camera , Ray  ray,  parser::Vec3f  interval_row, parser::Vec3f  interval_col  );
 parser::Vec3f get_perlin_color_mesh( parser::TextureMap & texturemap ,  parser::Vec3f hit_point   );
+parser::Vec3f get_checker_color_mesh( parser::TextureMap & texturemap ,  parser::Vec3f hit_point   );
+parser::Vec3f apply_tonemap( parser::Vec3f color ,parser::Camera  & camera  , double average_world_lum  , std::vector<float>& luminances );
+double average_world_luminance(float * tonemap_image , int image_width , int image_height , std::vector<float>&  luminances /* 100 luminances */);
+
+
+void sphere_env_open_hdr(std::string hdr_img_name);
+void release_sphere_env();
+parser::Vec3f get_random_vector_rejection_sampling(parser::Vec3f &normal );
+parser::Vec3f get_hdr_image_color(parser::Vec3f &l   );
+parser::Vec3f get_bilinear_coord_color_hdr(  parser::TextureMap & texturemap , float u , float v );
+parser::Vec3f get_nearest_coord_color_hdr(  parser::TextureMap & texturemap , float u , float v );

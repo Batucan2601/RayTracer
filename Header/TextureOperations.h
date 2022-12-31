@@ -1,4 +1,5 @@
 #include "Intersections.h"
+#include "EnvironmentalLight.h"
 #include <math.h>       /* isnan, std */
 #include "../System_Files/support_files/parser.h"
 #include <algorithm>
@@ -158,12 +159,33 @@ parser::Vec3f get_texture_color_from_mesh( parser::Scene & scene ,  int object_i
             }
             else if( scene.textureMaps[textures[i] - 1 ].decalMode == "replace_all" )
             {
-                
+                new_material.diffuse = parser::Vec3f( 0.0f , 0.0f , 0.0f);
+                new_material.specular = parser::Vec3f( 0.0f , 0.0f , 0.0f);
+
             }
             
 
             
 
+        }
+        else if( scene.textureMaps[textures[i] - 1 ].is_checkerboard)
+        {
+             //parse Decal
+            if(scene.textureMaps[textures[i] - 1 ].decalMode == "replace_kd" )
+            {
+                texture_color =   get_checker_color_mesh(   scene.textureMaps[textures[i] - 1 ] , intersection_point  );
+                new_material.diffuse = texture_color /255; 
+            }
+            else if(scene.textureMaps[textures[i] - 1 ].decalMode == "blend_kd")
+            {
+                texture_color =   get_checker_color_mesh(    scene.textureMaps[textures[i] - 1 ] , intersection_point  );
+                new_material.diffuse =  ( texture_color/255 + new_material.diffuse  )  /2 ; 
+            }
+            else if( scene.textureMaps[textures[i] - 1 ].decalMode == "replace_ks" )
+            {
+                texture_color =  get_checker_color_mesh(    scene.textureMaps[textures[i] - 1 ] , intersection_point  );
+                new_material.specular =  texture_color/255 ; 
+            }
         }
         else //perlin
         {
@@ -244,12 +266,36 @@ parser::Vec3f get_texture_color_from_sphere( parser::Scene & scene ,  int object
 
             if(scene.textureMaps[textures[i] - 1 ].interpolation == "bilinear" )
             {
-                texture_color = texture_color + get_bilinear_coord_color(scene.textureMaps[textures[i] - 1 ] , hit_texcoord[0] ,hit_texcoord[1]);
+                if(  scene.textureMaps[textures[i] - 1 ].image->is_hdr )
+                {
+                    parser::Vec3f random_dir_vector = get_random_vector_rejection_sampling(intersection_normal);
+                    //spherical convention for spherical maps
+                    float r = 1.0f / M_PI  *  acos( random_dir_vector.z )/ ( std::sqrt(random_dir_vector.x * random_dir_vector.x  + random_dir_vector.y * random_dir_vector.y  )  );
+                    float u = random_dir_vector.x * r;
+                    float v = random_dir_vector.y * r;
+
+                    // u an v are between  -1 and 1
+                    //map them to  0 1
+                    u = (u + 1) /2;
+                    v = (v + 1) /2;
+                    texture_color = texture_color + get_bilinear_coord_color_hdr(scene.textureMaps[textures[i] - 1 ] , u ,v);
+                }
+                else
+                {
+                    texture_color = texture_color + get_bilinear_coord_color(scene.textureMaps[textures[i] - 1 ] , hit_texcoord[0] ,hit_texcoord[1]);
+                }
                 
             }
             else if(scene.textureMaps[textures[i] - 1 ].interpolation == "nearest")
             {
-                texture_color = texture_color + get_nearest_coord_color(scene.textureMaps[textures[i] - 1 ] , hit_texcoord[0] ,hit_texcoord[1]);
+                if( scene.textureMaps[textures[i] - 1 ].image->is_hdr )
+                {
+                    texture_color = texture_color + get_nearest_coord_color_hdr(scene.textureMaps[textures[i] - 1 ] , hit_texcoord[0] ,hit_texcoord[1]);
+                }
+                else
+                {
+                    texture_color = texture_color + get_nearest_coord_color(scene.textureMaps[textures[i] - 1 ] , hit_texcoord[0] ,hit_texcoord[1]);
+                }
             }
             else 
             {
@@ -280,7 +326,9 @@ parser::Vec3f get_texture_color_from_sphere( parser::Scene & scene ,  int object
             }
             else if( scene.textureMaps[textures[i] - 1 ].decalMode == "replace_all" )
             {
-                
+                new_material.specular = parser::Vec3f(0.0f , 0.0f , 0.0f );
+                new_material.diffuse = parser::Vec3f(0.0f , 0.0f , 0.0f );
+
             }
             
 
@@ -599,12 +647,7 @@ void init_perlin_noise()
 {
     for (size_t i = 0; i < PERLINTABLESIZE; i++)
     {
-        std::random_device seed; // Will be used to obtain a seed for the random number engine
-        std::mt19937 generator(seed()); 
-        std::uniform_real_distribution<> distribution(-1.0f , 1.0f);
         permutation_table_temp[i] = i; 
-        gradient_vecs[i ] = parser::normalize_vec2f( parser::Vec2f( distribution(generator ) , distribution(generator ) )  );
-
     }
     std::random_shuffle(std::begin(permutation_table_temp) , std::end(permutation_table_temp));
     for (size_t i = 0; i < PERLINTABLESIZE; i++)
@@ -920,6 +963,79 @@ parser::Vec3f get_perlin_color_mesh( parser::TextureMap & texturemap ,  parser::
     {
         result = std::abs(result);
     }
+    else if( noiseConversion == "checkerboard")
+    {
+
+    }
+
     result = result * 255; 
     return parser::Vec3f( result ,result, result );
+}
+
+parser::Vec3f get_checker_color_mesh( parser::TextureMap & texturemap ,  parser::Vec3f hit_point   )
+{
+    bool x = (int) ((hit_point.x + texturemap.cb_Offset) * texturemap.cb_Scale) % 2;
+    bool y = (int) ((hit_point.y + texturemap.cb_Offset) * texturemap.cb_Scale) % 2;
+    bool z = (int) ((hit_point.z + texturemap.cb_Offset) * texturemap.cb_Scale) % 2;
+    bool xorXY = x != y;
+    if (xorXY != z)
+        return texturemap.cb_BlackColor;   
+    else
+        return texturemap.cb_WhiteColor;
+}
+
+//hdr interpolations
+parser::Vec3f get_bilinear_coord_color_hdr(  parser::TextureMap & texturemap , float u , float v )
+{
+    parser::Image * img =  texturemap.image; 
+    float i = u * img->w;
+    float j = v * img->h;
+    int p = std::floor(i);
+    int q = std::floor(j);
+    float dx = i - p;
+    float dy = j - q; 
+
+
+
+    parser::Vec3f color_left_bot;
+    color_left_bot.x = img->hdr_img[ 4 * ( q * img->w + p)  ];
+    color_left_bot.y = img->hdr_img[ 4 * ( q * img->w + p) + 1  ];
+    color_left_bot.z = img->hdr_img[ 4 * ( q * img->w + p) + 2  ];
+
+    parser::Vec3f color_left_top;
+    color_left_top.x = img->hdr_img[ 4 * ( (q-1) * img->w + p)  ];
+    color_left_top.y = img->hdr_img[ 4 * ( (q-1) * img->w + p) + 1  ];
+    color_left_top.z = img->hdr_img[ 4 * ( (q-1) * img->w + p) + 2  ];
+
+    parser::Vec3f color_right_top;
+    color_right_top.x = img->hdr_img[ 4 * ( (q-1) * img->w + p+1)  ];
+    color_right_top.y = img->hdr_img[ 4 * ( (q-1) * img->w + p+1) + 1  ];
+    color_right_top.z = img->hdr_img[ 4 * ( (q-1) * img->w + p+1) + 2  ];
+
+    parser::Vec3f color_right_bot;
+    color_right_bot.x = img->hdr_img[ 4 * ( (q) * img->w + p+1)  ];
+    color_right_bot.y = img->hdr_img[ 4 * ( (q) * img->w + p+1) + 1  ];
+    color_right_bot.z = img->hdr_img[ 4 * ( (q) * img->w + p+1) + 2  ];
+
+    parser::Vec3f test =(color_left_bot * (1 - dx )* (1 - dy ) + color_right_bot * (dx) * (1-dy) + color_left_top *(1 - dx) * (dy) + color_right_top * dx * dy   );
+
+
+
+    return  (color_left_bot * (1 - dx )* (1 - dy ) + color_right_bot * (dx) * (1-dy) + color_left_top *(1 - dx) * (dy) + color_right_top * dx * dy   ); 
+}
+parser::Vec3f get_nearest_coord_color_hdr(  parser::TextureMap & texturemap , float u , float v )
+{
+    // 1 - get image
+    parser::Image * img =  texturemap.image; 
+    int pix_x = std::floor(u * img->w);
+    int pix_y = std::floor(v * img->h);
+
+    parser::Vec3f color;
+    color.x = img->hdr_img[ 4 * ( pix_y * img->w + pix_x)  ];
+    color.y = img->hdr_img[ 4 * ( pix_y * img->w + pix_x) + 1  ];
+    color.z = img->hdr_img[ 4 * ( pix_y * img->w + pix_x) + 2  ];
+
+    return color;
+
+
 }
