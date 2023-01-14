@@ -9,7 +9,7 @@
             <FovY>45</FovY>
             <NearDistance>1</NearDistance>
             <ImageResolution>800 800</ImageResolution>
-            <ImageName>cube_point_hdr.png</ImageName>
+            <ImageName>cube_point_hdr.exr</ImageName>
             <Tonemap>
                 <TMO>Photographic</TMO>
                 <TMOOptions>0.18 1</TMOOptions> <!-- key_value burn_percent -->

@@ -268,9 +268,96 @@ parser::Vec3f get_texture_color_from_sphere( parser::Scene & scene ,  int object
             {
                 if(  scene.textureMaps[textures[i] - 1 ].image->is_hdr )
                 {
-                    parser::Vec3f random_dir_vector = get_random_vector_rejection_sampling(intersection_normal);
+                    //parser::Vec3f random_dir_vector = parser::normalize(intersection_point);
+                    //parser::Vec3f random_dir_vector = parser::normalize(parser::Vec3f( intersection_point -  scene.cameras[0].position) );
+                    
+                    // experimental
+                    // hit_texcoord[0] and hitexcoord[1] are between 0  and 1 normalzie such that -1 to 1 
+                    hit_texcoord[0] = hit_texcoord[0] * 2 - 1; 
+                    hit_texcoord[1] = hit_texcoord[1] * 2 - 1; 
+                    float theta = std::atan2( hit_texcoord[1] , hit_texcoord[0]);
+                    float phi = M_PI * std::sqrt(hit_texcoord[0] *hit_texcoord[0] + hit_texcoord[1] * hit_texcoord[1]);
+
+                    //rotate phi degrees around 0
+                    parser::Vec4f unit_vec;
+                    unit_vec.x = 0.0f;
+                    unit_vec.y = 0.0f;
+                    unit_vec.z = -1.0f;
+                    unit_vec.w = 1;
+
+                    float Rx = 0.0f;
+                    float Ry = 1.0f;
+                    float Rz = 0.0f;
+
+                    parser::Matrix s;
+                    //rotation matrix 
+                    //  x is degree 
+                    // y z w arbitrary axis
+                    float cosine_theta = std::cos( phi );
+                    float sine_theta = std::sin(   phi );
+                    s.set(0, 0 , cosine_theta + Rx * Rx * (1 - cosine_theta )  );
+                    s.set(0, 1 , Rx * Ry * (1 - cosine_theta ) - Rz * sine_theta  );  
+                    s.set(0, 2 , Rx * Rz * (1 -cosine_theta ) + Ry *sine_theta );  
+                    s.set(0, 3 , 0 );
+
+                    s.set(1, 0 , Ry*Rx*(1-cosine_theta) + Rz*sine_theta);
+                    s.set(1, 1 , cosine_theta + Ry*Ry*(1-cosine_theta) );
+                    s.set(1, 2 , Ry*Rz*(1-cosine_theta)-Rx*sine_theta );
+                    s.set(1, 3 , 0 );
+
+                    s.set(2, 0 , Ry*Rx*(1-cosine_theta) - Ry*sine_theta);
+                    s.set(2, 1 ,Rz*Ry*(1-cosine_theta) + Rx*sine_theta );
+                    s.set(2, 2 , cosine_theta + Rz*Rz*(1-cosine_theta) );
+                    s.set(2, 3 , 0 );
+
+                    s.set(3,0,0);
+                    s.set(3,1,0);
+                    s.set(3,2,0);
+                    s.set(3,3,1);  
+                    
+                    unit_vec = s * unit_vec;
+
+                    parser::Matrix s2;
+                    //rotation matrix 
+                    //  x is degree 
+                    // y z w arbitrary axis
+                    Rx = 0.0f;
+                    Ry = 0.0f;
+                    Rz = -1.0f;
+
+                    cosine_theta = std::cos( theta );
+                    sine_theta = std::sin( theta );
+                    s2.set(0, 0 , cosine_theta + Rx * Rx * (1 - cosine_theta )  );
+                    s2.set(0, 1 , Rx * Ry * (1 - cosine_theta ) - Rz * sine_theta  );  
+                    s2.set(0, 2 , Rx * Rz * (1 -cosine_theta ) + Ry *sine_theta );  
+                    s2.set(0, 3 , 0 );
+
+                    s2.set(1, 0 , Ry*Rx*(1-cosine_theta) + Rz*sine_theta);
+                    s2.set(1, 1 , cosine_theta + Ry*Ry*(1-cosine_theta) );
+                    s2.set(1, 2 , Ry*Rz*(1-cosine_theta)-Rx*sine_theta );
+                    s2.set(1, 3 , 0 );
+
+                    s2.set(2, 0 , Ry*Rx*(1-cosine_theta) - Ry*sine_theta);
+                    s2.set(2, 1 ,Rz*Ry*(1-cosine_theta) + Rx*sine_theta );
+                    s2.set(2, 2 , cosine_theta + Rz*Rz*(1-cosine_theta) );
+                    s2.set(2, 3 , 0 );
+
+                    s2.set(3,0,0);
+                    s2.set(3,1,0);
+                    s2.set(3,2,0);
+                    s2.set(3,3,1);  
+
+                    unit_vec = s2 * unit_vec;
+                    
+                    parser::Vec3f random_dir_vector;
+                    random_dir_vector.x =   (unit_vec.x/unit_vec.w);
+                    random_dir_vector.y =   (unit_vec.y/unit_vec.w);
+                    random_dir_vector.z =   (unit_vec.z/unit_vec.w);
+
+                    random_dir_vector = parser::normalize(random_dir_vector);
+                    // experimental 
                     //spherical convention for spherical maps
-                    float r = 1.0f / M_PI  *  acos( random_dir_vector.z )/ ( std::sqrt(random_dir_vector.x * random_dir_vector.x  + random_dir_vector.y * random_dir_vector.y  )  );
+                    float r = 1.0f / M_PI  *  std::acos( random_dir_vector.z )/ ( std::sqrt(random_dir_vector.x * random_dir_vector.x  + random_dir_vector.y * random_dir_vector.y  )  );
                     float u = random_dir_vector.x * r;
                     float v = random_dir_vector.y * r;
 
@@ -282,7 +369,7 @@ parser::Vec3f get_texture_color_from_sphere( parser::Scene & scene ,  int object
                 }
                 else
                 {
-                    texture_color = texture_color + get_bilinear_coord_color(scene.textureMaps[textures[i] - 1 ] , hit_texcoord[0] ,hit_texcoord[1]);
+                    texture_color =  ( texture_color + get_bilinear_coord_color(scene.textureMaps[textures[i] - 1 ] , hit_texcoord[0] ,hit_texcoord[1])  );
                 }
                 
             }
@@ -326,8 +413,8 @@ parser::Vec3f get_texture_color_from_sphere( parser::Scene & scene ,  int object
             }
             else if( scene.textureMaps[textures[i] - 1 ].decalMode == "replace_all" )
             {
-                new_material.specular = parser::Vec3f(0.0f , 0.0f , 0.0f );
-                new_material.diffuse = parser::Vec3f(0.0f , 0.0f , 0.0f );
+                new_material.specular = parser::Vec3f(-1.0f , 0.0f , 0.0f );
+                new_material.diffuse = parser::Vec3f(-1.0f , 0.0f , 0.0f );
 
             }
             

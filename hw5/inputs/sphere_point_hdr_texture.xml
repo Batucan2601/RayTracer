@@ -9,7 +9,7 @@
             <FovY>45</FovY>
             <NearDistance>1</NearDistance>
             <ImageResolution>800 800</ImageResolution>
-            <ImageName>sphere_point_hdr_texture.png</ImageName>
+            <ImageName>sphere_point_hdr_texture.exr</ImageName>
             <Tonemap>
                 <TMO>Photographic</TMO>
                 <TMOOptions>0.01 2</TMOOptions> <!-- key_value burn_percent -->
@@ -71,9 +71,9 @@
         <Sphere id="1">
             <Material>2</Material>
             <Textures>1</Textures>
-            <Transformations>r1</Transformations>
             <Center>1</Center>
             <Radius>3</Radius>
+            <Transformations>r1</Transformations>
         </Sphere>
     </Objects>
 </Scene>

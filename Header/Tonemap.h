@@ -44,10 +44,14 @@ double average_world_luminance(float * tonemap_image , int image_width , int ima
     }
     
     //fill first 100 luuminances 
-    for (size_t i = 0; i < lum_vec.size(); i += lum_vec.size()/100 )
+    if( lum_vec.size() > 100 )
     {
-        luminances.push_back(lum_vec[i]); 
+        for (size_t i = 0; i < lum_vec.size(); i += lum_vec.size()/100 )
+        {
+            luminances.push_back(lum_vec[i]); 
+        }
     }
+    
     lum_vec.erase(lum_vec.begin());
     luminances.push_back(lum_vec[lum_vec.size() - 1]);
     return average_world_lum; //equation 1 from reinhard 

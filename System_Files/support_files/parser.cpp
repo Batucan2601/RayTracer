@@ -1,7 +1,7 @@
 #pragma once 
 #include "parser.h"
 #define STB_IMAGE_IMPLEMENTATION
-#include "/home/batu/Desktop/RayTracer/RayTracer/Header/stb_image.h"
+#include "../../Header/stb_image.h"
 void parser::Scene::loadFromXml(const std::string &filepath)
 {
     tinyxml2::XMLDocument file;

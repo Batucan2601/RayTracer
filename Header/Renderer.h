@@ -142,6 +142,7 @@ static void generate_image(parser::Scene & scene)
                     tonemap_image[i++] = color.x;
                     tonemap_image[i++] = color.y;
                     tonemap_image[i++] = color.z;
+
                 }
                /*  //initilaize recursion depth
                 max_recursion_depth = scene.max_recursion_depth;
@@ -174,14 +175,22 @@ static void generate_image(parser::Scene & scene)
             {
                 for (size_t x = 0; x < width; x++)
                 {
-                    parser::Vec3f color( tonemap_image[i ] , tonemap_image[i + 1] , tonemap_image[i + 2]);
+                    parser::Vec3f color( tonemap_image[i ] , tonemap_image[i + 1] , tonemap_image[i + 3 ]);
                     parser::Vec3f tonemapped_color = apply_tonemap(  color ,current_camera  ,  average_world_lum  , luminances );
                     image[i++] = (unsigned char)tonemapped_color.x;
                     image[i++] = (unsigned char)tonemapped_color.y;
                     image[i++] = (unsigned char)tonemapped_color.z;
                 }
             }
-            stbi_write_png( current_camera.image_name.c_str() , width , height,3 , image , width  *  3  );
+
+            std::string png = current_camera.image_name; 
+            png = png.substr(0 , png.size() - 4 );
+            png = png + ".png";
+            stbi_write_png( png.c_str() , width , height,3 , image , width  *  3  );
+            
+            const char** temp_err; 
+            SaveEXR(tonemap_image , width , height , 3 , 0 , current_camera.image_name.c_str()  , temp_err  );
+
             
         }
         
@@ -404,9 +413,18 @@ static parser::Vec3f color_pixel(parser::Scene& scene , Ray & ray )
             specular.z = std::min(255.0f , specular.z );
         }
 
-        //unutma !! 
-        //color =  color + diffuse  + specular  ;   
-        color = color + texture_color;
+        // replace_all u ekle 
+        if( texture_material.diffuse.x == -1.0f && texture_material.specular.x == -1.0f )
+        {
+            //replace all 
+            color = color + texture_color; // sphere_point_hdr icin
+        }
+        else
+        {
+            //normal case 
+            color =  color + diffuse  + specular  ;   
+        }
+        
 
     }
     // for each area light
