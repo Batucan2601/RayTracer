@@ -45,3 +45,5 @@ parser::Vec3f get_random_vector_rejection_sampling(parser::Vec3f &normal );
 parser::Vec3f get_hdr_image_color(parser::Vec3f &l   );
 parser::Vec3f get_bilinear_coord_color_hdr(  parser::TextureMap & texturemap , float u , float v );
 parser::Vec3f get_nearest_coord_color_hdr(  parser::TextureMap & texturemap , float u , float v );
+
+parser::Vec3f get_BRDF(const parser::Scene & scene , const parser::Material &material , const float& alpha_angle , const float& theta_angle    );

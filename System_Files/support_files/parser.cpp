@@ -407,6 +407,151 @@ void parser::Scene::loadFromXml(const std::string &filepath)
 
         spot_lights.push_back(spotLight);
     }
+    //get BRDF ModifiedBlinnPhong
+    element = root->FirstChildElement("BRDFs");
+    if( element != NULL )
+    {
+        element = element->FirstChildElement("ModifiedBlinnPhong");
+        while( element != NULL )
+        {
+            auto child = element->FirstChildElement("Exponent");
+            if( child != NULL )
+            {
+                //get exponent
+                float exponent = std::stof(child->GetText());
+
+                BRDF brdf;
+                brdf.type = "ModifiedBlinnPhong";
+                brdf.exponent = exponent; 
+                if( element->Attribute( "normalized") != NULL )  
+                {
+                    brdf.is_normalized = true;
+                }
+                else
+                {
+                    brdf.is_normalized = false;
+                }
+                BRDFs.push_back(brdf);                
+            }
+            element = element->NextSiblingElement("ModifiedBlinnPhong");
+        }        
+    }
+    // get blinnphong OriginalBlinnPhong
+    element = root->FirstChildElement("BRDFs");
+    if( element != NULL )
+    {
+        element = element->FirstChildElement("OriginalBlinnPhong");
+        while( element != NULL )
+        {
+            auto child = element->FirstChildElement("Exponent");
+            if( child != NULL )
+            {
+                //get exponent
+                float exponent = std::stof(child->GetText());
+
+                BRDF brdf;
+                brdf.type = "OriginalBlinnPhong";
+                brdf.exponent = exponent; 
+                if( element->Attribute( "normalized") != NULL )  
+                {
+                    brdf.is_normalized = true;
+                }
+                else
+                {
+                    brdf.is_normalized = false;
+                }
+                BRDFs.push_back(brdf);                
+            }
+            element = element->NextSiblingElement("OriginalBlinnPhong");
+        }        
+    }
+    // get blinnphong ModifiedBlinnphong
+    element = root->FirstChildElement("BRDFs");
+    if( element != NULL )
+    {
+        element = element->FirstChildElement("ModifiedPhong");
+        while( element != NULL )
+        {
+            auto child = element->FirstChildElement("Exponent");
+            if( child != NULL )
+            {
+                //get exponent
+                float exponent = std::stof(child->GetText());
+
+                BRDF brdf;
+                brdf.type = "ModifiedPhong";
+                brdf.exponent = exponent; 
+                if( element->Attribute( "normalized") != NULL )  
+                {
+                    brdf.is_normalized = true;
+                }
+                else
+                {
+                    brdf.is_normalized = false;
+                }
+                BRDFs.push_back(brdf);                
+            }
+            element = element->NextSiblingElement("ModifiedPhong");
+        }        
+    }
+    // get blinnphong ModifiedBlinnphong
+    element = root->FirstChildElement("BRDFs");
+    if( element != NULL )
+    {
+        element = element->FirstChildElement("OriginalPhong");
+        while( element != NULL )
+        {
+            auto child = element->FirstChildElement("Exponent");
+            if( child != NULL )
+            {
+                //get exponent
+                float exponent = std::stof(child->GetText());
+
+                BRDF brdf;
+                brdf.type = "OriginalPhong";
+                brdf.exponent = exponent; 
+                if( element->Attribute("normalized") != NULL )  
+                {
+                    brdf.is_normalized = true;
+                }
+                else
+                {
+                    brdf.is_normalized = false;
+                }
+                BRDFs.push_back(brdf);                
+            }
+            element = element->NextSiblingElement("OriginalPhong");
+        }        
+    }
+     // get blinnphong ModifiedBlinnphong
+    element = root->FirstChildElement("BRDFs");
+    if( element != NULL )
+    {
+        element = element->FirstChildElement("TorranceSparrow");
+        while( element != NULL )
+        {
+            auto child = element->FirstChildElement("Exponent");
+            if( child != NULL )
+            {
+                //get exponent
+                float exponent = std::stof(child->GetText());
+
+                BRDF brdf;
+                brdf.type = "TorranceSparrow";
+                brdf.exponent = exponent; 
+                if( element->Attribute( "normalized") != NULL )  
+                {
+                    brdf.is_normalized = true;
+                }
+                else
+                {
+                    brdf.is_normalized = false;
+                }
+                BRDFs.push_back(brdf);                
+            }
+            element = element->NextSiblingElement("TorranceSparrow");
+        }        
+    }
     //get textures 
     element = root->FirstChildElement("Textures");
     if( element != NULL )
@@ -722,6 +867,16 @@ void parser::Scene::loadFromXml(const std::string &filepath)
         else
         {
             material.roughness = 0.0f;
+        }
+        if( element->Attribute("BRDF") != NULL )
+        {
+            material.is_BRDF = true ; 
+            material.brdf = BRDFs[ std::stoi(element->Attribute("BRDF") ) - 1 ];
+        }
+        else
+        {
+            material.is_BRDF = false ; 
+            
         }
         materials.push_back(material);
         element = element->NextSiblingElement("Material");

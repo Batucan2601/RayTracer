@@ -7,6 +7,8 @@
 #include "../Header/BVH.h"
 #include "../Header/Tonemap.h"
 #include "../Header/EnvironmentalLight.h"
+#include "../Header/BRDF.h"
+
 #include <random>
 static parser::Vec3f color_pixel_BVH(parser::Scene& scene , Ray & ray, BVH::BoundingBoxTree *&  node  );
 
@@ -360,69 +362,107 @@ static parser::Vec3f color_pixel(parser::Scene& scene , Ray & ray )
             }
         }
         
-        // diffuse 
-        parser::Vec3f diffuse = parser::Vec3f( material.diffuse.x , material.diffuse.y, material.diffuse.z);
-        float cosine_alpha = parser::dot(shadow_ray.direction  ,  normal ) / (parser::length(shadow_ray.direction) * parser::length(normal)  ) ; //normal vectors
-        
-        if( is_intersection_textured )
+        if( material.is_BRDF == false  ) // no brdf 
         {
-            diffuse = parser::Vec3f( texture_material.diffuse.x * scene.point_lights[i].intensity.x , texture_material.diffuse.y *  scene.point_lights[i].intensity.y , texture_material.diffuse.z *   scene.point_lights[i].intensity.z) / (parser::distance(light_pos , hit_point )*parser::distance(light_pos, hit_point)  );
-            //clamp cosine alpha
-            cosine_alpha = std::max(0.0f , cosine_alpha);
-            diffuse = diffuse * cosine_alpha; 
+                // diffuse 
+            parser::Vec3f diffuse = parser::Vec3f( material.diffuse.x , material.diffuse.y, material.diffuse.z);
+            float cosine_alpha = parser::dot(shadow_ray.direction  ,  normal ) / (parser::length(shadow_ray.direction) * parser::length(normal)  ) ; //normal vectors
+            
+            if( is_intersection_textured )
+            {
+                diffuse = parser::Vec3f( texture_material.diffuse.x * scene.point_lights[i].intensity.x , texture_material.diffuse.y *  scene.point_lights[i].intensity.y , texture_material.diffuse.z *   scene.point_lights[i].intensity.z) / (parser::distance(light_pos , hit_point )*parser::distance(light_pos, hit_point)  );
+                //clamp cosine alpha
+                cosine_alpha = std::max(0.0f , cosine_alpha);
+                diffuse = diffuse * cosine_alpha; 
 
-        }
-        else
-        {
-            diffuse = parser::Vec3f( diffuse.x * scene.point_lights[i].intensity.x , diffuse.y *  scene.point_lights[i].intensity.y ,diffuse.z *   scene.point_lights[i].intensity.z) / (parser::distance(light_pos , hit_point )*parser::distance(light_pos, hit_point)  );
-             //clamp cosine alpha
-            cosine_alpha = std::max(0.0f , cosine_alpha);
-            diffuse = diffuse * cosine_alpha; 
-        }
-        if( current_camera.tonemap.tmo == "") //empty 
-        {//clamp diffuse
-            diffuse.x = std::min(255.0f , diffuse.x );
-            diffuse.y = std::min(255.0f , diffuse.y );
-            diffuse.z = std::min(255.0f , diffuse.z );
-        }
+            }
+            else
+            {
+                diffuse = parser::Vec3f( diffuse.x * scene.point_lights[i].intensity.x , diffuse.y *  scene.point_lights[i].intensity.y ,diffuse.z *   scene.point_lights[i].intensity.z) / (parser::distance(light_pos , hit_point )*parser::distance(light_pos, hit_point)  );
+                //clamp cosine alpha
+                cosine_alpha = std::max(0.0f , cosine_alpha);
+                diffuse = diffuse * cosine_alpha; 
+            }
+            if( current_camera.tonemap.tmo == "") //empty 
+            {//clamp diffuse
+                diffuse.x = std::min(255.0f , diffuse.x );
+                diffuse.y = std::min(255.0f , diffuse.y );
+                diffuse.z = std::min(255.0f , diffuse.z );
+            }
 
 
-        // specular 
-        // specular 
-        parser::Vec3f specular = parser::Vec3f( material.specular.x , material.specular.y, material.specular.z);
-        float phong_exponent = material.phong_exponent; 
+            // specular 
+            // specular 
+            parser::Vec3f specular = parser::Vec3f( material.specular.x , material.specular.y, material.specular.z);
+            float phong_exponent = material.phong_exponent; 
 
-        parser::Vec3f viewpos = parser::normalize(ray.origin - hit_point); 
-        parser::Vec3f h =  parser::normalize( shadow_ray.direction + viewpos ); // this might be flawed 
-        float cosine_h_n = parser::dot(h , normal) /  ( parser::length(h) * parser::length(normal) ); // they re both normalised but just in case
-        //clamp cosine
-        cosine_h_n = std::max(0.0f , cosine_h_n );
-        if( is_intersection_textured )
-        {
-            specular =    parser::Vec3f(  texture_material.specular.x * scene.point_lights[i].intensity.x , texture_material.specular.y * scene.point_lights[i].intensity.y  , texture_material.specular.z * scene.point_lights[i].intensity.z ) / (parser::distance(light_pos , hit_point )*parser::distance(light_pos, hit_point)  ) * std::pow( cosine_h_n , phong_exponent   );  
+            parser::Vec3f viewpos = parser::normalize(ray.origin - hit_point); 
+            parser::Vec3f h =  parser::normalize( shadow_ray.direction + viewpos ); // this might be flawed 
+            float cosine_h_n = parser::dot(h , normal) /  ( parser::length(h) * parser::length(normal) ); // they re both normalised but just in case
+            //clamp cosine
+            cosine_h_n = std::max(0.0f , cosine_h_n );
+            if( is_intersection_textured )
+            {
+                specular =    parser::Vec3f(  texture_material.specular.x * scene.point_lights[i].intensity.x , texture_material.specular.y * scene.point_lights[i].intensity.y  , texture_material.specular.z * scene.point_lights[i].intensity.z ) / (parser::distance(light_pos , hit_point )*parser::distance(light_pos, hit_point)  ) * std::pow( cosine_h_n , phong_exponent   );  
+            }
+            else
+            {
+                specular =    parser::Vec3f( specular.x * scene.point_lights[i].intensity.x , specular.y * scene.point_lights[i].intensity.y  , specular.z * scene.point_lights[i].intensity.z ) / (parser::distance(light_pos , hit_point )*parser::distance(light_pos, hit_point)  ) * std::pow( cosine_h_n , phong_exponent   );  
+            }
+            if( current_camera.tonemap.tmo == "") //empty 
+            {
+                //clamp diffuse
+                specular.x = std::min(255.0f , specular.x );
+                specular.y = std::min(255.0f , specular.y );
+                specular.z = std::min(255.0f , specular.z );
+            }
+            // replace_all u ekle 
+            if( texture_material.diffuse.x == -1.0f && texture_material.specular.x == -1.0f )
+            {
+                //replace all 
+                color = color + texture_color; // sphere_point_hdr icin
+            }
+            else
+            {
+                //normal case 
+                color =  color + diffuse  + specular  ;   
+            }
         }
-        else
+        else // material.isbrdf
         {
-            specular =    parser::Vec3f( specular.x * scene.point_lights[i].intensity.x , specular.y * scene.point_lights[i].intensity.y  , specular.z * scene.point_lights[i].intensity.z ) / (parser::distance(light_pos , hit_point )*parser::distance(light_pos, hit_point)  ) * std::pow( cosine_h_n , phong_exponent   );  
-        }
-        if( current_camera.tonemap.tmo == "") //empty 
-        {
-            //clamp diffuse
-            specular.x = std::min(255.0f , specular.x );
-            specular.y = std::min(255.0f , specular.y );
-            specular.z = std::min(255.0f , specular.z );
-        }
+            parser::Material material_temp; 
+            parser::Vec3f diffuse;
+            parser::Vec3f specular;
 
-        // replace_all u ekle 
-        if( texture_material.diffuse.x == -1.0f && texture_material.specular.x == -1.0f )
-        {
-            //replace all 
-            color = color + texture_color; // sphere_point_hdr icin
-        }
-        else
-        {
-            //normal case 
-            color =  color + diffuse  + specular  ;   
+            
+            diffuse = parser::Vec3f( material.diffuse.x , material.diffuse.y, material.diffuse.z);
+            float cosine_alpha = parser::dot(shadow_ray.direction  ,  normal ) / (parser::length(shadow_ray.direction) * parser::length(normal)  ) ; //normal vectors
+
+            specular = parser::Vec3f( material.specular.x , material.specular.y, material.specular.z);
+            float phong_exponent = material.phong_exponent; 
+            parser::Vec3f viewpos = parser::normalize(ray.origin - hit_point); 
+            parser::Vec3f h =  parser::normalize( shadow_ray.direction + viewpos ); // this might be flawed 
+            float cosine_h_n = parser::dot(h , normal) /  ( parser::length(h) * parser::length(normal) ); // they re both normalised but just in case
+
+            if( is_intersection_textured )
+            {
+                diffuse = parser::Vec3f( texture_material.diffuse.x , texture_material.diffuse.y, texture_material.diffuse.z);
+                specular = parser::Vec3f( texture_material.specular.x , texture_material.specular.y, texture_material.specular.z);
+            }
+            else
+            {
+                diffuse = parser::Vec3f( material.diffuse.x , material.diffuse.y, material.diffuse.z);
+                specular = parser::Vec3f( material.specular.x , material.specular.y, material.specular.z);
+            }
+            material_temp = material; 
+            material_temp.diffuse = diffuse; 
+            material_temp.specular = specular; 
+            parser::Vec3f brdf_material  = get_BRDF(scene , material_temp , cosine_alpha , cosine_h_n );
+            
+            parser::Vec3f new_color(brdf_material.x * scene.point_lights[i].intensity.x , brdf_material.y *  scene.point_lights[i].intensity.y ,brdf_material.z *   scene.point_lights[i].intensity.z);
+            new_color = new_color / (parser::distance(light_pos , hit_point )*parser::distance(light_pos, hit_point)  );
+            color = color + new_color;
+            
         }
         
 
@@ -919,6 +959,10 @@ static parser::Vec3f color_pixel(parser::Scene& scene , Ray & ray )
         color.y = (float) ( (int ) color.y );
         color.z = (float) ( (int ) color.z );
     }
+
+    color.x = std::max(color.x , 0.0f );
+    color.y = std::max(color.y , 0.0f );
+    color.z = std::max(color.z , 0.0f );
 
    
 

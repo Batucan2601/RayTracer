@@ -14,7 +14,7 @@
                 "/home/batu/Desktop/RayTracer/RayTracer/Header",
                 "/home/batu/Desktop/RayTracer/RayTracer/System_Files/support_files"
             ],
-            "args": ["/home/batu/Desktop/RayTracer/RayTracer/hw5/inputs/sphere_point_hdr_texture.xml"],
+            "args": ["/home/batu/Desktop/RayTracer/RayTracer/hw6/brdf/inputs/brdf_blinnphong_modified_normalized.xml"],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",
             "environment": [],

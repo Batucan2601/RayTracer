@@ -134,6 +134,12 @@ namespace parser
         float coverageAngle;
         float fallofAngle;
     };
+    struct BRDF
+    {
+        std::string type; 
+        float exponent;
+        bool is_normalized;
+    };
     struct Image
     {   
         bool is_hdr;
@@ -182,6 +188,8 @@ namespace parser
         float absorption_index; 
         float roughness;
         bool is_degamma = false;
+        bool is_BRDF = false;
+        BRDF brdf;
 
     };
 
@@ -277,6 +285,7 @@ namespace parser
         std::vector<Triangle> triangles;
         std::vector<Sphere> spheres;
         std::vector<MeshInstance> mesh_instances;
+        std::vector<BRDF > BRDFs;  
         Transformations transformations;
         //Functions
         void loadFromXml(const std::string &filepath);
