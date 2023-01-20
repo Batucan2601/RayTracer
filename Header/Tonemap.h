@@ -31,17 +31,7 @@ double average_world_luminance(float * tonemap_image , int image_width , int ima
     average_world_lum = std::exp( average_world_lum    / (image_width * image_height) ) ;
 
     std::sort(lum_vec.begin(), lum_vec.end());
-    // delete same values
-    int index_ = 0;
-    while( index_ < lum_vec.size() - 1 )
-    {
-        if( std::abs(lum_vec[index_]  - lum_vec[index_ + 1 ] ) <= 1e-2 )
-        {
-            lum_vec.erase(lum_vec.begin() + index_);
-            index_ -= 1; 
-        }
-        index_ += 1;
-    }
+ 
     
     //fill first 100 luuminances 
     if( lum_vec.size() > 100 )
@@ -55,6 +45,7 @@ double average_world_luminance(float * tonemap_image , int image_width , int ima
     lum_vec.erase(lum_vec.begin());
     luminances.push_back(lum_vec[lum_vec.size() - 1]);
     return average_world_lum; //equation 1 from reinhard 
+
 
 }
 parser::Vec3f apply_tonemap( parser::Vec3f color ,parser::Camera  & camera  , double average_world_lum  , std::vector<float>& luminances )

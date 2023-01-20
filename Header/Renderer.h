@@ -8,6 +8,8 @@
 #include "../Header/Tonemap.h"
 #include "../Header/EnvironmentalLight.h"
 #include "../Header/BRDF.h"
+#include "../Header/PathTracing.h"
+
 
 #include <random>
 static parser::Vec3f color_pixel_BVH(parser::Scene& scene , Ray & ray, BVH::BoundingBoxTree *&  node  );
@@ -307,8 +309,9 @@ static parser::Vec3f color_pixel(parser::Scene& scene , Ray & ray )
     
     //find the hitpoint 
     bool is_shadow_rays_active = false;
+    bool is_light_object_intersected = false; 
     int object_id = -1; 
-    bool  is_object_hit = ray_object_intersection( ray , scene ,  hit_point , normal  , material   , object_id , hit_face, is_shadow_rays_active);
+    bool  is_object_hit = ray_object_intersection( ray , scene ,  hit_point , normal  , material   , object_id , hit_face, is_shadow_rays_active , is_light_object_intersected);
     if( !is_object_hit)
     {
         if( scene.spheredir_lights.size() > 0 ) // if env spherical 
@@ -317,7 +320,7 @@ static parser::Vec3f color_pixel(parser::Scene& scene , Ray & ray )
         }   
         else if(!scene.is_texture_background)
         {
-        return parser::Vec3f(scene.background_color.x, scene.background_color.y , scene.background_color.z );
+            return parser::Vec3f(scene.background_color.x, scene.background_color.y , scene.background_color.z );
         }
         else
         {
@@ -325,14 +328,123 @@ static parser::Vec3f color_pixel(parser::Scene& scene , Ray & ray )
             return parser::Vec3f(-1.0f ,0.0f ,0.0f );
         }
     }
-
+    if( is_light_object_intersected && object_id >= scene.meshes.size() + scene.spheres.size() + scene.triangles.size() + scene.mesh_instances.size() )
+    {
+        if( object_id <  scene.meshes.size() + scene.spheres.size() + scene.triangles.size() + scene.mesh_instances.size() + scene.light_meshes.size() )
+        {
+            //light mesh get object
+            parser::LightMesh* light_mesh_ptr =  &scene.light_meshes[object_id - ( scene.meshes.size() + scene.spheres.size() + scene.triangles.size() + scene.mesh_instances.size()) ];
+            return light_mesh_ptr->radiance / ( parser::distance( ray.origin , hit_point));
+        }
+        else if( object_id <  scene.meshes.size() + scene.spheres.size() + scene.triangles.size() + scene.mesh_instances.size() + scene.light_meshes.size() + scene.light_spheres.size() )
+        {
+            parser::LightSphere* light_sphere_ptr =  &scene.light_spheres[object_id - ( scene.meshes.size() + scene.spheres.size() + scene.triangles.size() + scene.mesh_instances.size() + scene.light_meshes.size()) ];
+            return light_sphere_ptr->radiance / ( parser::distance( ray.origin , hit_point));
+        }
+    }
     //check texture
     parser::Vec3f texture_color; 
     parser::Material texture_material; 
+    if( current_camera.is_importance_sampling ) 
+    {
+        //sample hemisphere
+        float eps1 = dis_importance_sampling_eps1(gen_importance_eps1);
+        float eps2 = dis_importance_sampling_eps2(gen_importance_eps2);
 
+        float phi =  2 * M_PI * eps1;
+        float theta =  std::asin(std::sqrt(eps1));
+        
+        //1 -  rotate phi around + y axis
+        //rotate phi degrees around 0
+        parser::Vec4f unit_vec;
+        unit_vec.x = 0.0f;
+        unit_vec.y = 0.0f;
+        unit_vec.z = -1.0f;
+        unit_vec.w = 1;
+
+        float Rx = 0.0f;
+        float Ry = 1.0f;
+        float Rz = 0.0f;
+
+        parser::Matrix s;
+        //rotation matrix 
+        //  x is degree 
+        // y z w arbitrary axis
+        float cosine_theta = std::cos( phi  );
+        float sine_theta = std::sin(   phi );
+        s.set(0, 0 , cosine_theta + Rx * Rx * (1 - cosine_theta )  );
+        s.set(0, 1 , Rx * Ry * (1 - cosine_theta ) - Rz * sine_theta  );  
+        s.set(0, 2 , Rx * Rz * (1 -cosine_theta ) + Ry *sine_theta );  
+        s.set(0, 3 , 0 );
+
+        s.set(1, 0 , Ry*Rx*(1-cosine_theta) + Rz*sine_theta);
+        s.set(1, 1 , cosine_theta + Ry*Ry*(1-cosine_theta) );
+        s.set(1, 2 , Ry*Rz*(1-cosine_theta)-Rx*sine_theta );
+        s.set(1, 3 , 0 );
+
+        s.set(2, 0 , Ry*Rx*(1-cosine_theta) - Ry*sine_theta);
+        s.set(2, 1 ,Rz*Ry*(1-cosine_theta) + Rx*sine_theta );
+        s.set(2, 2 , cosine_theta + Rz*Rz*(1-cosine_theta) );
+        s.set(2, 3 , 0 );
+
+        s.set(3,0,0);
+        s.set(3,1,0);
+        s.set(3,2,0);
+        s.set(3,3,1);  
+        
+        unit_vec = s * unit_vec;
+
+        parser::Matrix s2;
+        // theta around + x 
+        Rx = 1.0f;
+        Ry = 0.0f;
+        Rz = 0.0f;
+
+        cosine_theta = std::cos( theta );
+        sine_theta = std::sin( theta );
+        s2.set(0, 0 , cosine_theta + Rx * Rx * (1 - cosine_theta )  );
+        s2.set(0, 1 , Rx * Ry * (1 - cosine_theta ) - Rz * sine_theta  );  
+        s2.set(0, 2 , Rx * Rz * (1 -cosine_theta ) + Ry *sine_theta );  
+        s2.set(0, 3 , 0 );
+
+        s2.set(1, 0 , Ry*Rx*(1-cosine_theta) + Rz*sine_theta);
+        s2.set(1, 1 , cosine_theta + Ry*Ry*(1-cosine_theta) );
+        s2.set(1, 2 , Ry*Rz*(1-cosine_theta)-Rx*sine_theta );
+        s2.set(1, 3 , 0 );
+
+        s2.set(2, 0 , Ry*Rx*(1-cosine_theta) - Ry*sine_theta);
+        s2.set(2, 1 ,Rz*Ry*(1-cosine_theta) + Rx*sine_theta );
+        s2.set(2, 2 , cosine_theta + Rz*Rz*(1-cosine_theta) );
+        s2.set(2, 3 , 0 );
+
+        s2.set(3,0,0);
+        s2.set(3,1,0);
+        s2.set(3,2,0);
+        s2.set(3,3,1);  
+
+        unit_vec = s2 * unit_vec;
+        
+        unit_vec.x =   (unit_vec.x/unit_vec.w);
+        unit_vec.y =   (unit_vec.y/unit_vec.w);
+        unit_vec.z =   (unit_vec.z/unit_vec.w);
+
+
+        Ray importance_ray( hit_point + parser::Vec3f(unit_vec.x , unit_vec.y ,unit_vec.z ) * 0.01f, hit_point + parser::Vec3f(unit_vec.x , unit_vec.y ,unit_vec.z ) );
+        
+        //toggle importance sampling in order to not have stack overflow 
+        current_camera.is_importance_sampling = false; 
+        color = color + color_pixel(scene , importance_ray);
+        current_camera.is_importance_sampling = true; 
+
+    }
+    if( current_camera.is_next_event_estimation)
+    {
+
+    }
+    
     bool is_intersection_textured = is_texture_present(  scene ,   object_id ,  hit_point  ,  normal , hit_face ,  texture_color ,  texture_material);
     //we can add ambient shading
-    color = parser::Vec3f(scene.ambient_light.x , scene.ambient_light.y , scene.ambient_light.z);
+    color =  color + parser::Vec3f(scene.ambient_light.x , scene.ambient_light.y , scene.ambient_light.z);
     //  for each point light
     is_shadow_rays_active = true; 
     for (size_t i = 0; i < scene.point_lights.size(); i++) 
@@ -352,7 +464,8 @@ static parser::Vec3f color_pixel(parser::Scene& scene , Ray & ray )
         parser::Face hit_face_temp; 
         parser::Vec3f normal_temp;
         parser::Material material_temp;  
-        bool  is_object_hit = ray_object_intersection( shadow_ray , scene ,  hit_point_temp , normal_temp , material_temp , object_id , hit_face_temp ,  is_shadow_rays_active);
+        bool is_light_object_intersected  = false; 
+        bool  is_object_hit = ray_object_intersection( shadow_ray , scene ,  hit_point_temp , normal_temp , material_temp , object_id , hit_face_temp ,  is_shadow_rays_active , is_light_object_intersected);
         
         if( is_object_hit ) // it is in shadow no contribution from light
         {
@@ -436,13 +549,21 @@ static parser::Vec3f color_pixel(parser::Scene& scene , Ray & ray )
 
             
             diffuse = parser::Vec3f( material.diffuse.x , material.diffuse.y, material.diffuse.z);
-            float cosine_alpha = parser::dot(shadow_ray.direction  ,  normal ) / (parser::length(shadow_ray.direction) * parser::length(normal)  ) ; //normal vectors
+            float cosine_theta_value = parser::dot( normal , shadow_ray.direction ) / ( parser::length(shadow_ray.direction) * parser::length(normal) ) ; 
+            cosine_theta_value = std::max(0.0f , cosine_theta_value);
 
-            specular = parser::Vec3f( material.specular.x , material.specular.y, material.specular.z);
-            float phong_exponent = material.phong_exponent; 
+            parser::Vec3f W0 = parser::Vec3f( shadow_ray.direction.x  * -1 , shadow_ray.direction.y  * -1 , shadow_ray.direction.z  * -1  ); 
+            float cosine_omega  = parser::dot( W0 , normal ) / ( parser::length( normal ) * parser::length(W0));
+            parser::Vec3f Wr = W0 * -1.0f +  normal * cosine_omega * 2.0f ;  // perfect directed vector 
+
+            float cosine_alpha_value = parser::dot(Wr , ray.direction * -1) / (parser::length(Wr) * parser::length(ray.direction));
+
             parser::Vec3f viewpos = parser::normalize(ray.origin - hit_point); 
             parser::Vec3f h =  parser::normalize( shadow_ray.direction + viewpos ); // this might be flawed 
             float cosine_h_n = parser::dot(h , normal) /  ( parser::length(h) * parser::length(normal) ); // they re both normalised but just in case
+            //clamp cosine
+            cosine_h_n = std::max(0.0f , cosine_h_n );
+
 
             if( is_intersection_textured )
             {
@@ -457,12 +578,37 @@ static parser::Vec3f color_pixel(parser::Scene& scene , Ray & ray )
             material_temp = material; 
             material_temp.diffuse = diffuse; 
             material_temp.specular = specular; 
-            parser::Vec3f brdf_material  = get_BRDF(scene , material_temp , cosine_alpha , cosine_h_n );
+            parser::Vec3f brdf_material  = get_BRDF(scene , material_temp ,  cosine_alpha_value , cosine_theta_value,  cosine_h_n , current_camera  , shadow_ray.direction , ray.direction * -1 , h , normal );
             
             parser::Vec3f new_color(brdf_material.x * scene.point_lights[i].intensity.x , brdf_material.y *  scene.point_lights[i].intensity.y ,brdf_material.z *   scene.point_lights[i].intensity.z);
             new_color = new_color / (parser::distance(light_pos , hit_point )*parser::distance(light_pos, hit_point)  );
-            color = color + new_color;
+            new_color = new_color * cosine_theta_value;
             
+            
+            if(current_camera.is_russian_roulette)
+            {
+                float eps1 = dis_russian_roulette_eps(gen_russian_roulette_eps);
+                // use average of the 3 brdf channels ? 
+                float brdf = (brdf_material.x + brdf_material.y + brdf_material.z) / 3.0f ;
+
+                color = color +  new_color * ray.throughput ;
+                ray.throughput = ray.throughput * brdf;
+
+                if( !(eps1 >=  ray.throughput) ) //continue recursion
+                {
+                    color = color + color_pixel(scene , ray);
+                }
+                else
+                {
+                    color = color +  new_color / ray.throughput ;
+                }
+            }
+            else
+            {
+                color = color + new_color; //plain addition
+                if( new_color.x > 100 )
+                int a = 1; 
+            }
         }
         
 
@@ -504,8 +650,8 @@ static parser::Vec3f color_pixel(parser::Scene& scene , Ray & ray )
         parser::Material material_temp;  
         parser::Face hit_face_temp;
         
-
-        bool  is_object_hit = ray_object_intersection( shadow_ray , scene ,  hit_point_temp , normal_temp , material_temp , object_id , hit_face_temp , is_shadow_rays_active);
+        bool is_light_object_intersected  = false; 
+        bool  is_object_hit = ray_object_intersection( shadow_ray , scene ,  hit_point_temp , normal_temp , material_temp , object_id , hit_face_temp , is_shadow_rays_active , is_light_object_intersected);
         
         //before that calculate t of light pos //also pass  
         float light_pos_t = (p.x - shadow_ray.origin.x )  / shadow_ray.direction.x;
@@ -568,7 +714,9 @@ static parser::Vec3f color_pixel(parser::Scene& scene , Ray & ray )
         parser::Face hit_face_temp; 
         parser::Vec3f normal_temp;
         parser::Material material_temp;  
-        bool  is_object_hit = ray_object_intersection( shadow_ray , scene ,  hit_point_temp , normal_temp , material_temp , object_id , hit_face_temp ,  is_shadow_rays_active);
+        bool is_light_object_intersected  = false; 
+
+        bool  is_object_hit = ray_object_intersection( shadow_ray , scene ,  hit_point_temp , normal_temp , material_temp , object_id , hit_face_temp ,  is_shadow_rays_active , is_light_object_intersected );
         
         if( is_object_hit ) // it is in shadow no contribution from light
         {
@@ -643,7 +791,8 @@ static parser::Vec3f color_pixel(parser::Scene& scene , Ray & ray )
         parser::Face hit_face_temp; 
         parser::Vec3f normal_temp;
         parser::Material material_temp;  
-        bool  is_object_hit = ray_object_intersection( shadow_ray , scene ,  hit_point_temp , normal_temp , material_temp , object_id , hit_face_temp ,  is_shadow_rays_active);
+        bool is_light_object_intersected  = false; 
+        bool  is_object_hit = ray_object_intersection( shadow_ray , scene ,  hit_point_temp , normal_temp , material_temp , object_id , hit_face_temp ,  is_shadow_rays_active , is_light_object_intersected);
         
         if( is_object_hit ) // it is in shadow no contribution from light
         {
@@ -742,12 +891,34 @@ static parser::Vec3f color_pixel(parser::Scene& scene , Ray & ray )
         parser::Vec3f random_vec = get_random_vector_rejection_sampling( normal );
         color = color + get_hdr_image_color(random_vec);
     }
+    is_shadow_rays_active = true; 
+    for (size_t i = 0; i < scene.light_meshes.size(); i++)
+    {
+        if( current_camera.is_next_event_estimation )
+        {
+            //do sampling I dont know how
+        }
+    }
+    is_shadow_rays_active = true; 
+    for (size_t i = 0; i < scene.light_spheres.size(); i++)
+    {
+        if( current_camera.is_next_event_estimation )
+        {
+            //do sampling I dont know how
+        }
+    }
     
     if(material.is_mirror ) // do recursion
     {
         if( max_recursion_depth > 0 )
         {
+            
             max_recursion_depth -= 1; // max recursion depth is reduced 
+            if( current_camera.is_russian_roulette )
+            {
+                max_recursion_depth += 1; // recursion depth becomes useless 
+            }
+            
             parser::Vec3f W0 = parser::Vec3f( ray.direction.x  * -1 , ray.direction.y  * -1 , ray.direction.z  * -1  ); 
             float cosine_omega  = parser::dot( W0 , normal ) / ( parser::length( normal ) * parser::length(W0));
             parser::Vec3f Wr = W0 * -1.0f +  normal * cosine_omega * 2.0f ;  
@@ -822,6 +993,10 @@ static parser::Vec3f color_pixel(parser::Scene& scene , Ray & ray )
         if( max_recursion_depth > 0 )
         {
             max_recursion_depth -= 1; 
+            if( current_camera.is_russian_roulette )
+            {
+                max_recursion_depth += 1; // recursion depth becomes useless 
+            }
             //calculate second hit 
             parser::Vec3f second_hit_point(0.0f , 0.0f , 0.0f );
             parser::Vec3f second_normal(0.0f ,0.0f , 0.0f );
@@ -938,6 +1113,10 @@ static parser::Vec3f color_pixel(parser::Scene& scene , Ray & ray )
                 vr = Wr_; 
             }
             max_recursion_depth -= 1; 
+            if( current_camera.is_russian_roulette )
+            {
+                max_recursion_depth += 1; // recursion depth becomes useless 
+            }
             Ray reflection_ray( hit_point +  ( vr * (0.01f) )  , hit_point + vr  );
             reflection_ray.generate_time();
             parser::Vec3f reflection_color =   color_pixel(scene ,reflection_ray) * reflection_ratio ;

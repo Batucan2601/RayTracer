@@ -97,6 +97,10 @@ namespace parser
         float focus_distance;
         float aperture_size;
         ToneMap tonemap; 
+        std::string renderer; 
+        bool is_russian_roulette;
+        bool is_importance_sampling;
+        bool is_next_event_estimation; 
 
     };
 
@@ -152,6 +156,7 @@ namespace parser
     {
         int image_id; 
     };
+    
     
     struct TextureMap
     {
@@ -258,7 +263,19 @@ namespace parser
         std::vector<int> textures; 
 
     };
-
+    struct LightSphere
+    {
+        Vec3f radiance; 
+        int material_id;
+        int center_vertex_id;
+        float radius;
+    };
+    struct LightMesh
+    {
+        Vec3f radiance; 
+        int material_id;
+        std::vector<Face> faces;
+    };
     struct Scene
     {
         //Data
@@ -272,7 +289,8 @@ namespace parser
         std::vector<DirectionalLight> directional_lights; 
         std::vector<SpotLight> spot_lights; 
         std::vector<SphericalDirectionalLight> spheredir_lights; 
-
+        std::vector<LightSphere> light_spheres;
+        std::vector<LightMesh> light_meshes; 
 
         std::vector<Image> images;
         std::vector<TextureMap> textureMaps;

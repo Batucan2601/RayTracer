@@ -738,7 +738,7 @@ static bool calculate_intersection(parser::Scene& scene ,parser::MeshInstance& o
     
 }
 
-static bool ray_object_intersection( const Ray & ray , parser::Scene & scene , parser::Vec3f &hitpoint , parser::Vec3f & normal , parser::Material &material ,   int &  prev_object_id  , parser::Face &hit_face,  bool is_shadow_rays_active  )
+static bool ray_object_intersection( const Ray & ray , parser::Scene & scene , parser::Vec3f &hitpoint , parser::Vec3f & normal , parser::Material &material ,   int &  prev_object_id  , parser::Face &hit_face,  bool is_shadow_rays_active , bool & is_light_object_intersected )
 {
     std::vector<parser::Vec3f> hit_points;
     std::vector<parser::Vec3f> normals;
@@ -752,6 +752,9 @@ static bool ray_object_intersection( const Ray & ray , parser::Scene & scene , p
     int triangle_count = 0;  
     int sphere_count = 0;
     int mesh_instances_count = 0;
+    int light_meshes_count = 0;
+    int light_spheres_count = 0;
+
 
     int object_id = 0; 
 
@@ -833,7 +836,35 @@ static bool ray_object_intersection( const Ray & ray , parser::Scene & scene , p
             
             mesh_instances_count += 1; 
         }
+        while( light_meshes_count < scene.light_meshes.size() )
+        {
+            object_id = mesh_count + sphere_count + triangle_count + mesh_instances_count + light_meshes_count ; // give every object unique id 
+            is_intersected_with_this_object = calculate_intersection(scene , scene.light_meshes[light_meshes_count] , ray , intersection_normal ,   intersection_point  ,hit_face, is_shadow_rays_active);
+            if( is_intersected_with_this_object && object_id != prev_object_id ) // the second clause is for shadow rays in order not the intersect itself
+            {
+                hit_points.push_back(intersection_point ); 
+                normals.push_back(intersection_normal );
+                materials.push_back(scene.materials[scene.light_meshes[light_meshes_count].material_id - 1] );
+                object_id_list.push_back(object_id);
+                faces.push_back(hit_face);
+            }
 
+            light_meshes_count += 1; 
+        }
+        while( light_spheres_count < scene.light_spheres.size() )
+        {
+            object_id = mesh_count + sphere_count + triangle_count + mesh_instances_count + light_meshes_count + light_spheres_count ; // give every object unique id 
+            is_intersected_with_this_object = calculate_intersection(scene , scene.light_spheres[light_spheres_count] ,  ray ,   intersection_normal , intersection_point , is_shadow_rays_active );
+            if( is_intersected_with_this_object && object_id != prev_object_id ) // the second clause is for shadow rays in order not the intersect itself
+            {
+                hit_points.push_back(intersection_point ); 
+                normals.push_back(intersection_normal );
+                materials.push_back(scene.materials[scene.light_spheres[light_spheres_count].material_id - 1] );
+                object_id_list.push_back(object_id);
+                //faces.push_back(hit_face);
+            }
+            light_spheres_count += 1; 
+        }
     }
  
     //now we found the hitpoints get the smallest of them and return black if nothing found
@@ -867,10 +898,109 @@ static bool ray_object_intersection( const Ray & ray , parser::Scene & scene , p
     {
         prev_object_id = object_id_list[smallest_index];
     }
+    if( object_id >= (scene.meshes.size() + scene.spheres.size() + scene.triangles.size() + scene.mesh_instances.size() ) )
+    {
+        is_light_object_intersected = true; 
+    }
+    else
+    {
+        is_light_object_intersected = false; 
+    }
     return true; 
 
 }
+//a light mesh intersection 
+static bool calculate_intersection(parser::Scene& scene ,parser::LightMesh& object ,const Ray & ray , parser::Vec3f & intersection_normal ,  parser::Vec3f & intersection_point , parser::Face & hit_face , bool is_shadow_rays_active  )
+{
+    std::vector<parser::Vec3f> hit_points; // there can be multiple hitpoints for an object 
+    std::vector<parser::Vec3f> normals; 
+    std::vector<parser::Face> faces; 
+      
+    for (size_t i = 0; i < object.faces.size(); i++)
+    {
+        //get points
+        parser::Vec3f p1 = parser::Vec3f( scene.vertex_data[ (object.faces[i].v0_id-1)    ].x , scene.vertex_data[ (object.faces[i].v0_id-1)    ].y , scene.vertex_data[ (object.faces[i].v0_id-1)  ].z ); 
+        parser::Vec3f p2 = parser::Vec3f( scene.vertex_data[ (object.faces[i].v1_id-1)   ].x  , scene.vertex_data[ (object.faces[i].v1_id-1)  ].y   , scene.vertex_data[ (object.faces[i].v1_id-1)   ].z );
+        parser::Vec3f p3 = parser::Vec3f( scene.vertex_data[ (object.faces[i].v2_id-1)   ].x , scene.vertex_data[ (object.faces[i].v2_id-1)    ].y  , scene.vertex_data[ (object.faces[i].v2_id-1)   ].z );
 
+        parser::Vec3f normal = parser::normalize(parser::cross((p2-p1) , (p3-p1)) );
+        #ifdef DEBUG 
+        if (isnan(normal.x) )
+        {
+            std::cout << " ray dir " << ray.direction.x << " " << ray.direction.y << " " << ray.direction.z << std::endl; 
+             //calculate normal
+            std::cout << " new trianglee " << std::endl; 
+            std::cout << p1.x << "  " << p1.y << " "  << p1.z << std::endl;
+            std::cout << p2.x << "  " << p2.y << " "  << p2.z << std::endl;
+            std::cout << p3.x << "  " << p3.y << " "  << p3.z << std::endl;
+            std::cout << "indices " << std::endl; 
+        }
+        #endif
+        parser::Vec3f temp_intersection_point(0.0f , 0.0f , 0.f );
+        if( ray_triangle_intersection(ray , p1 , p2 , p3 , normal , temp_intersection_point) )
+        {
+            normal = parser::normalize( parser::cross(p2 - p1 , p3 - p1) );
+
+            hit_points.push_back(temp_intersection_point);
+            normals.push_back(normal);
+            faces.push_back(object.faces[i]);
+        } 
+    }
+    if( hit_points.size() == 0 )
+    {
+        return false; 
+    }
+    if( hit_points.size() == 1 )
+    {
+        intersection_point = hit_points[0];
+        intersection_normal = normals[0];
+        hit_face = faces[0];
+        return true; 
+    }
+    std::vector<float> distances;
+    for (size_t i = 0; i < hit_points.size(); i++)
+    {
+        distances.push_back(parser::distance(hit_points[i] , ray.origin) ) ;
+    }
+    float smallest_length = 99999.0f; 
+    int smallest_index = 0; 
+    for (size_t i = 0; i < distances.size(); i++)
+    {
+        if( smallest_length > distances[i])
+        {
+            smallest_index = i;
+            smallest_length = distances[i];
+        }
+    }
+    // fill intersection and normal
+    intersection_point = hit_points[smallest_index];
+    intersection_normal = normals[smallest_index];
+    hit_face = faces[smallest_index];
+    return true; 
+        
+    
+}
+// a light sphere intersection 
+static bool calculate_intersection(parser::Scene& scene ,parser::LightSphere& object , const Ray & ray , parser::Vec3f & intersection_normal ,  parser::Vec3f & intersection_point , bool is_shadow_rays_active )
+{
+    parser::Vec3f center = parser::Vec3f(scene.vertex_data[object.center_vertex_id-1].x , scene.vertex_data[object.center_vertex_id-1 ].y  , scene.vertex_data[object.center_vertex_id-1].z );
+    parser::Sphere s;
+    s.radius = object.radius;
+    s.transformation = parser::Matrix();
+    s.transformation.set(0,0,1);
+    s.transformation.set(1,1,1);
+    s.transformation.set(2,2,1);
+    s.transformation.set(3,3,1);
+
+    s.transformation_inverse = parser::Matrix();
+    s.transformation_inverse.set(0,0,1);
+    s.transformation_inverse.set(1,1,1);
+    s.transformation_inverse.set(2,2,1);
+    s.transformation_inverse.set(3,3,1);
+
+    bool is_ray_intersected = ray_sphere_intersection( ray , s , center ,  intersection_normal ,   intersection_point );
+    return is_ray_intersected; 
+}
 static bool calculate_second_hitpoint_in_same_object( parser::Scene & scene , const Ray & refracted_ray ,  parser::Vec3f & hit_point , parser::Vec3f & normal  , int & object_id , parser::Vec3f & second_hit_point  , parser::Vec3f & second_normal , parser::Face &hit_face  , bool  is_shadow_rays_active   )
 {
     // fetch the object with 

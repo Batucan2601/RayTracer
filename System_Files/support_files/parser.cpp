@@ -216,6 +216,45 @@ void parser::Scene::loadFromXml(const std::string &filepath)
         }
         camera.tonemap  = tonemap;
 
+        //renderer
+        child = element->FirstChildElement("Renderer");
+        if( child != NULL )
+        {
+            camera.renderer = child->GetText();
+            child = element->FirstChildElement("RendererParams");
+            if( child != NULL )
+            {
+                std::string all_params = child->GetText();
+                //next event 
+                size_t found = all_params.find("NextEventEstimation");
+                if( found != std::string::npos)
+                {
+                    camera.is_next_event_estimation = true; 
+                }
+                else
+                {
+                    camera.is_next_event_estimation = false;
+                }
+                found = all_params.find("ImportanceSampling");
+                if( found != std::string::npos)
+                {
+                    camera.is_importance_sampling = true; 
+                }
+                else
+                {
+                    camera.is_importance_sampling = false;
+                }
+                found = all_params.find("RussianRoulette");
+                if( found != std::string::npos)
+                {
+                    camera.is_russian_roulette = true; 
+                }
+                else
+                {
+                    camera.is_russian_roulette = false;
+                }
+            }
+        }
         
         cameras.push_back(camera);
         element = element->NextSiblingElement("Camera");
@@ -1118,12 +1157,22 @@ void parser::Scene::loadFromXml(const std::string &filepath)
 
         if(!child->Attribute("plyFile")) // no ply
         {
+            int vertex_offset =0; 
+            if( child->Attribute("vertexOffset") != NULL )
+            {
+                vertex_offset = std::stoi(child->Attribute("vertexOffset"));
+            }
             stream << child->GetText() << std::endl;
             
             Face face;
             while (!(stream >> face.v0_id).eof())
             {
                 stream >> face.v1_id >> face.v2_id;
+
+                face.v0_id += vertex_offset;
+                face.v1_id += vertex_offset;
+                face.v2_id += vertex_offset;
+
                 mesh.faces.push_back(face);
             }
         }        
@@ -1559,8 +1608,142 @@ void parser::Scene::loadFromXml(const std::string &filepath)
         spheres.push_back(sphere);
         element = element->NextSiblingElement("Sphere");
     }
-    std::cout << "reading spheres done  " << std::endl;  
+    //Get light meshes
+    element = root->FirstChildElement("Objects");
+    element = element->FirstChildElement("LightMesh");
+    while( element )
+    {
+        LightMesh mesh; 
 
+        child = element->FirstChildElement("Material");
+        if( child != NULL )
+        {
+        mesh.material_id = std::stoi(child->GetText());
+        }
+
+        
+        
+        stream.clear();
+
+
+        child = element->FirstChildElement("Faces");
+
+        
+
+        if(!child->Attribute("plyFile")) // no ply
+        {
+            int vertex_offset =0; 
+            if( child->Attribute("vertexOffset") != NULL )
+            {
+                vertex_offset = std::stoi(child->Attribute("vertexOffset"));
+            }
+            stream << child->GetText() << std::endl;
+            
+            Face face;
+            std::istringstream iss(child->GetText());
+            std::string trans = child->GetText();
+            int count = 0; 
+            while(std::getline(iss , trans , '\n'))
+            {
+                count++;
+                if( count == 1  )
+                {
+                    continue; 
+                }
+                std::stringstream ss;
+                ss << trans; 
+                ss >> face.v0_id;
+                ss >> face.v1_id;
+                ss >> face.v2_id;
+
+                mesh.faces.push_back(face);
+
+            }
+        }        
+        else //ply file 
+        {
+            //chekc for ply
+            const char* base_mesh = child->Attribute("plyFile");
+            std::string base_mesh_str = base_mesh;
+            happly::PLYData plyIn(base_mesh_str);
+            std::vector<std::array<double , 3U > > vertex_pos = plyIn.getVertexPositions();
+		    std::vector<std::vector<size_t>> face_indices=  plyIn.getFaceIndices();
+            int vertex_data_initial_size = vertex_data.size();
+            std::cout << " enter read " << std::endl; 
+            for (size_t i = 0; i < vertex_pos.size(); i++)
+            {
+                //add them to vertex_data
+                Vec3f point;
+                point.x = (float)vertex_pos[i][0];
+                point.y = (float)vertex_pos[i][1];
+                point.z = (float)vertex_pos[i][2];
+
+                vertex_data.push_back( point );
+            }
+
+            //now increase all of the face indicies by vertex_data_initial_size
+            for (size_t i = 0; i < face_indices.size(); i++)
+            {
+                if(  face_indices[i].size() == 3 )
+                {
+                    Face face1;
+                    face1.v0_id = face_indices[i][0] +  vertex_data_initial_size + 1;
+                    face1.v1_id = face_indices[i][1] + vertex_data_initial_size  + 1 ;
+                    face1.v2_id = face_indices[i][2] + vertex_data_initial_size + 1;
+                    mesh.faces.push_back(face1 );
+                }
+                else if(face_indices[i].size() == 4  )
+                {
+                    Face face1;
+                    face1.v0_id = face_indices[i][0] +  vertex_data_initial_size + 1;
+                    face1.v1_id = face_indices[i][1] + vertex_data_initial_size  + 1 ;
+                    face1.v2_id = face_indices[i][2] + vertex_data_initial_size + 1;
+                    mesh.faces.push_back(face1 );
+                    Face face2;
+                    face2.v0_id = face_indices[i][0] +  vertex_data_initial_size + 1;
+                    face2.v1_id = face_indices[i][2] + vertex_data_initial_size  + 1 ;
+                    face2.v2_id = face_indices[i][3] + vertex_data_initial_size + 1;
+                    mesh.faces.push_back(face2 );
+                }
+                
+
+
+            }
+            
+            
+        }
+        // radiance
+        child = element->FirstChildElement("Radiance");
+        std::istringstream iss(child->GetText());
+        std::string trans = child->GetText();
+        int count = 0; 
+        while(std::getline(iss , trans , ' '))
+        {
+          
+            std::stringstream ss;
+            std::cout << trans << std::endl; 
+            ss << trans; 
+            if(count == 0 )
+            {
+            ss >> mesh.radiance.x;
+            }
+            else if( count == 1 )
+            {
+            ss >> mesh.radiance.y;
+
+            }
+            else if( count == 2 )
+            {
+            ss >> mesh.radiance.z;
+            }
+            count++;
+        }
+
+
+        stream.clear();
+        light_meshes.push_back(mesh );
+        element = element->NextSiblingElement("LightMesh");
+    }
 }
 // geometry functions
 float parser::dot( const Vec3f& vec1 , const Vec3f& vec2   )

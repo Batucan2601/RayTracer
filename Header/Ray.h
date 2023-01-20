@@ -40,6 +40,7 @@ class Ray
     parser::Vec3f direction;
     int sample_no;
     float time_parameter = 0; 
+    float throughput = 1.0f; 
     void generate_time();
 };
 

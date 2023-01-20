@@ -13,7 +13,7 @@ parser::Scene scene;
 parser::Camera current_camera;
 #include "../Header/TextureOperations.h"
 
-
+ 
 
 int main(int argc, char* argv[])
 {
