@@ -255,7 +255,13 @@ void parser::Scene::loadFromXml(const std::string &filepath)
                 }
             }
         }
-        
+        else
+        {
+            camera.is_importance_sampling = false;
+            camera.is_next_event_estimation = false;
+            camera.is_russian_roulette = false;
+
+        }
         cameras.push_back(camera);
         element = element->NextSiblingElement("Camera");
     }
@@ -263,189 +269,210 @@ void parser::Scene::loadFromXml(const std::string &filepath)
 
     //Get Lights
     element = root->FirstChildElement("Lights");
-    auto child = element->FirstChildElement("AmbientLight");
-    if( child != NULL )
-    {   
-        stream << child->GetText() << std::endl;
-        
-    }
-    else
+    if( element != NULL )
     {
-        stream << "0 0 0 " << std::endl;
-    }
-
-    stream >> ambient_light.x >> ambient_light.y >> ambient_light.z;
-
-    //point light 
-    element = element->FirstChildElement("PointLight");
-    PointLight point_light;
-
-    std::cout << "2 " << std::endl;  
-
-    while (element)
-    {
-        child = element->FirstChildElement("Position");
-        stream << child->GetText() << std::endl;
-        child = element->FirstChildElement("Intensity");
-        stream << child->GetText() << std::endl;
-
-        stream >> point_light.position.x >> point_light.position.y >> point_light.position.z;
-        stream >> point_light.intensity.x >> point_light.intensity.y >> point_light.intensity.z;
-
-        point_lights.push_back(point_light);
-        element = element->NextSiblingElement("PointLight");
-    }
-
-    //directional light
-    element = root->FirstChildElement("Lights");
-    element = element->FirstChildElement("DirectionalLight");
-    DirectionalLight dirLight; 
-    while(element)
-    {
-        child = element->FirstChildElement("Direction");
-        std::istringstream iss(child->GetText());
-        std::string trans = child->GetText();
-        float arr[3];
-        int i = 0;
-        while(std::getline(iss , trans , ' '))
-        {
-            arr[i] = std::stof(trans);
-            i++;
-        }
-        dirLight.direction.x = arr[0]; 
-        dirLight.direction.y = arr[1]; 
-        dirLight.direction.z = arr[2]; 
-
-        child = element->FirstChildElement("Radiance");
-        std::istringstream iss2(child->GetText());
-        std::string trans2 = child->GetText();
-        i = 0;
-        while(std::getline(iss2 , trans2 , ' '))
-        {
-            arr[i] = std::stof(trans2);
-            i++;
-        }
-        dirLight.radiance.x = arr[0]; 
-        dirLight.radiance.y = arr[1]; 
-        dirLight.radiance.z = arr[2]; 
-
-        directional_lights.push_back(dirLight);
-        element = element->NextSiblingElement("DirectionalLight");
-    }
-    // area light
-    element = root->FirstChildElement("Lights");
-    element = element->FirstChildElement("AreaLight");
-    AreaLight area_light;
-    while( element )
-    {
-        child = element->FirstChildElement("Position");
-        stream << child->GetText() << std::endl;
-        child = element->FirstChildElement("Normal");
-        stream << child->GetText() << std::endl;
-        child = element->FirstChildElement("Size");
-        stream << child->GetText() << std::endl;
-        child = element->FirstChildElement("Radiance");
-        stream << child->GetText() << std::endl;
-        stream >> area_light.position.x >> area_light.position.y >> area_light.position.z;
-        stream >> area_light.normal.x >> area_light.normal.y >> area_light.normal.z;
-        stream >> area_light.size;
-        stream >> area_light.radiance.x >> area_light.radiance.y >> area_light.radiance.z;
-
-
-        //calculate ortho basis
-        area_light.ortho_basis.normal = area_light.normal; 
-        // n'
-        if( std::abs(area_light.normal.x) < std::abs(area_light.normal.y) && std::abs(area_light.normal.x) < std::abs(area_light.normal.z))
-        {
-            // x is smallest
-            area_light.ortho_basis.normal.x =  1.0f; 
-        }
-        else if( std::abs(area_light.normal.y) < std::abs(area_light.normal.x) && std::abs(area_light.normal.y) < std::abs(area_light.normal.z))
-        {
-            // y is smallest
-            area_light.ortho_basis.normal.y =  1.0f; 
+            auto child = element->FirstChildElement("AmbientLight");
+        if( child != NULL )
+        {   
+            stream << child->GetText() << std::endl;
+            
         }
         else
         {
-            // z is smallest
-            area_light.ortho_basis.normal.z =  1.0f; 
+            stream << "0 0 0 " << std::endl;
         }
-        //compute u
-        area_light.ortho_basis.u = parser::normalize(parser::cross(area_light.ortho_basis.normal , area_light.normal ));
-        area_light.ortho_basis.v = parser::normalize(parser::cross(area_light.normal , area_light.ortho_basis.u ));
-        area_lights.push_back(area_light);
 
-        element = element->NextSiblingElement("AreaLight");
+        stream >> ambient_light.x >> ambient_light.y >> ambient_light.z;
 
+        //point light 
+        element = element->FirstChildElement("PointLight");
+        PointLight point_light;
+
+        std::cout << "2 " << std::endl;  
+
+        while (element)
+        {
+            child = element->FirstChildElement("Position");
+            stream << child->GetText() << std::endl;
+            child = element->FirstChildElement("Intensity");
+            stream << child->GetText() << std::endl;
+
+            stream >> point_light.position.x >> point_light.position.y >> point_light.position.z;
+            stream >> point_light.intensity.x >> point_light.intensity.y >> point_light.intensity.z;
+
+            point_lights.push_back(point_light);
+            element = element->NextSiblingElement("PointLight");
+        }
+
+        //directional light
+        element = root->FirstChildElement("Lights");
+        element = element->FirstChildElement("DirectionalLight");
+        DirectionalLight dirLight; 
+        while(element)
+        {
+            child = element->FirstChildElement("Direction");
+            std::istringstream iss(child->GetText());
+            std::string trans = child->GetText();
+            float arr[3];
+            int i = 0;
+            while(std::getline(iss , trans , ' '))
+            {
+                arr[i] = std::stof(trans);
+                i++;
+            }
+            dirLight.direction.x = arr[0]; 
+            dirLight.direction.y = arr[1]; 
+            dirLight.direction.z = arr[2]; 
+
+            child = element->FirstChildElement("Radiance");
+            std::istringstream iss2(child->GetText());
+            std::string trans2 = child->GetText();
+            i = 0;
+            while(std::getline(iss2 , trans2 , ' '))
+            {
+                arr[i] = std::stof(trans2);
+                i++;
+            }
+            dirLight.radiance.x = arr[0]; 
+            dirLight.radiance.y = arr[1]; 
+            dirLight.radiance.z = arr[2]; 
+
+            directional_lights.push_back(dirLight);
+            element = element->NextSiblingElement("DirectionalLight");
+        }
+        // area light
+        element = root->FirstChildElement("Lights");
+        element = element->FirstChildElement("AreaLight");
+        AreaLight area_light;
+        while( element )
+        {
+            child = element->FirstChildElement("Position");
+            stream << child->GetText() << std::endl;
+            child = element->FirstChildElement("Normal");
+            stream << child->GetText() << std::endl;
+            child = element->FirstChildElement("Size");
+            stream << child->GetText() << std::endl;
+            child = element->FirstChildElement("Radiance");
+            stream << child->GetText() << std::endl;
+            stream >> area_light.position.x >> area_light.position.y >> area_light.position.z;
+            stream >> area_light.normal.x >> area_light.normal.y >> area_light.normal.z;
+            stream >> area_light.size;
+            stream >> area_light.radiance.x >> area_light.radiance.y >> area_light.radiance.z;
+
+
+            //calculate ortho basis
+            area_light.ortho_basis.normal = area_light.normal; 
+            // n'
+            if( std::abs(area_light.normal.x) < std::abs(area_light.normal.y) && std::abs(area_light.normal.x) < std::abs(area_light.normal.z))
+            {
+                // x is smallest
+                area_light.ortho_basis.normal.x =  1.0f; 
+            }
+            else if( std::abs(area_light.normal.y) < std::abs(area_light.normal.x) && std::abs(area_light.normal.y) < std::abs(area_light.normal.z))
+            {
+                // y is smallest
+                area_light.ortho_basis.normal.y =  1.0f; 
+            }
+            else
+            {
+                // z is smallest
+                area_light.ortho_basis.normal.z =  1.0f; 
+            }
+            //compute u
+            area_light.ortho_basis.u = parser::normalize(parser::cross(area_light.ortho_basis.normal , area_light.normal ));
+            area_light.ortho_basis.v = parser::normalize(parser::cross(area_light.normal , area_light.ortho_basis.u ));
+            area_lights.push_back(area_light);
+
+            element = element->NextSiblingElement("AreaLight");
+
+        }
+
+        element = root->FirstChildElement("Lights");
+        element = element->FirstChildElement("SpotLight");
+        while( element )
+        {
+            SpotLight spotLight; 
+            child = element->FirstChildElement("Position");
+            if( child != NULL )
+            {
+                std::istringstream iss(child->GetText());
+                std::string trans = child->GetText();
+                float arr[3];
+                int i = 0;
+                while(std::getline(iss , trans , ' '))
+                {
+                    arr[i] = std::stof(trans);
+                    i++;
+                }
+                spotLight.position.x = arr[0]; 
+                spotLight.position.y = arr[1]; 
+                spotLight.position.z = arr[2]; 
+            }
+            child = element->FirstChildElement("Direction");
+            if( child != NULL )
+            {
+                std::istringstream iss(child->GetText());
+                std::string trans = child->GetText();
+                float arr[3];
+                int i = 0;
+                while(std::getline(iss , trans , ' '))
+                {
+                    arr[i] = std::stof(trans);
+                    i++;
+                }
+                spotLight.direction.x = arr[0]; 
+                spotLight.direction.y = arr[1]; 
+                spotLight.direction.z = arr[2]; 
+            }
+            child = element->FirstChildElement("Intensity");
+            if( child != NULL )
+            {
+                std::istringstream iss(child->GetText());
+                std::string trans = child->GetText();
+                float arr[3];
+                int i = 0;
+                while(std::getline(iss , trans , ' '))
+                {
+                    arr[i] = std::stof(trans);
+                    i++;
+                }
+                spotLight.intensity.x = arr[0]; 
+                spotLight.intensity.y = arr[1]; 
+                spotLight.intensity.z = arr[2]; 
+            }
+            child = element->FirstChildElement("Intensity");
+            if( child != NULL )
+            {
+                spotLight.coverageAngle = std::stof(child->GetText());
+            }
+            child = element->FirstChildElement("FalloffAngle");
+            if( child != NULL )
+            {
+                spotLight.fallofAngle = std::stof(child->GetText());
+            }
+            element = element->NextSiblingElement("SpotLight");
+
+            spot_lights.push_back(spotLight);
+        }
+        element = root->FirstChildElement("Lights");
+        element = element->FirstChildElement("SphericalDirectionalLight");
+        while(element)
+        {
+            SphericalDirectionalLight spheredir_light;
+            if( element != NULL )
+            {
+                auto child = element->FirstChildElement("ImageId");
+                if( child != NULL )
+                {
+                    spheredir_light.image_id = std::stoi(child->GetText()) - 1;
+                }
+            }
+            spheredir_lights.push_back(spheredir_light);
+            element = element->NextSiblingElement("SphericalDirectionalLight");
+
+        }
     }
-
-    element = root->FirstChildElement("Lights");
-    element = element->FirstChildElement("SpotLight");
-    while( element )
-    {
-        SpotLight spotLight; 
-        child = element->FirstChildElement("Position");
-        if( child != NULL )
-        {
-            std::istringstream iss(child->GetText());
-            std::string trans = child->GetText();
-            float arr[3];
-            int i = 0;
-            while(std::getline(iss , trans , ' '))
-            {
-                arr[i] = std::stof(trans);
-                i++;
-            }
-            spotLight.position.x = arr[0]; 
-            spotLight.position.y = arr[1]; 
-            spotLight.position.z = arr[2]; 
-        }
-        child = element->FirstChildElement("Direction");
-        if( child != NULL )
-        {
-            std::istringstream iss(child->GetText());
-            std::string trans = child->GetText();
-            float arr[3];
-            int i = 0;
-            while(std::getline(iss , trans , ' '))
-            {
-                arr[i] = std::stof(trans);
-                i++;
-            }
-            spotLight.direction.x = arr[0]; 
-            spotLight.direction.y = arr[1]; 
-            spotLight.direction.z = arr[2]; 
-        }
-        child = element->FirstChildElement("Intensity");
-        if( child != NULL )
-        {
-            std::istringstream iss(child->GetText());
-            std::string trans = child->GetText();
-            float arr[3];
-            int i = 0;
-            while(std::getline(iss , trans , ' '))
-            {
-                arr[i] = std::stof(trans);
-                i++;
-            }
-            spotLight.intensity.x = arr[0]; 
-            spotLight.intensity.y = arr[1]; 
-            spotLight.intensity.z = arr[2]; 
-        }
-        child = element->FirstChildElement("Intensity");
-        if( child != NULL )
-        {
-            spotLight.coverageAngle = std::stof(child->GetText());
-        }
-        child = element->FirstChildElement("FalloffAngle");
-        if( child != NULL )
-        {
-            spotLight.fallofAngle = std::stof(child->GetText());
-        }
-        element = element->NextSiblingElement("SpotLight");
-
-        spot_lights.push_back(spotLight);
-    }
+    
     //get BRDF ModifiedBlinnPhong
     element = root->FirstChildElement("BRDFs");
     if( element != NULL )
@@ -637,23 +664,7 @@ void parser::Scene::loadFromXml(const std::string &filepath)
     }
     
     
-    element = root->FirstChildElement("Lights");
-    element = element->FirstChildElement("SphericalDirectionalLight");
-    while(element)
-    {
-        SphericalDirectionalLight spheredir_light;
-        if( element != NULL )
-        {
-            child = element->FirstChildElement("ImageId");
-            if( child != NULL )
-            {
-                spheredir_light.image_id = std::stoi(child->GetText()) - 1;
-            }
-        }
-        spheredir_lights.push_back(spheredir_light);
-        element = element->NextSiblingElement("SphericalDirectionalLight");
-
-    }
+    
     // get texture maps 
     element = root->FirstChildElement("Textures");
     if( element != NULL )
@@ -667,7 +678,7 @@ void parser::Scene::loadFromXml(const std::string &filepath)
             if( element->Attribute("type" , "image") != NULL  )
             {
                 textureMap.is_image = true;
-                child =  element->FirstChildElement("ImageId");
+                auto child =  element->FirstChildElement("ImageId");
                 int image_id = std::stoi(child->GetText());
                 textureMap.image = &images[image_id - 1 ];
                 child =  element->FirstChildElement("DecalMode");
@@ -699,7 +710,7 @@ void parser::Scene::loadFromXml(const std::string &filepath)
             if( element->Attribute("type" , "perlin") != NULL    )
             {
                 textureMap.is_image = false;
-                child =  element->FirstChildElement("NoiseConversion");
+                auto child =  element->FirstChildElement("NoiseConversion");
                 std::string NoiseConversion = child->GetText();
                 textureMap.noiseConversion = NoiseConversion;
 
@@ -719,7 +730,7 @@ void parser::Scene::loadFromXml(const std::string &filepath)
             } 
             if( element->Attribute("type" , "checkerboard") != NULL)
             {
-                child =  element->FirstChildElement("BlackColor");
+                auto child =  element->FirstChildElement("BlackColor");
                 if( child != NULL )
                 {
                     std::istringstream iss(child->GetText());
@@ -800,7 +811,7 @@ void parser::Scene::loadFromXml(const std::string &filepath)
         material.is_conductor = (element->Attribute("type", "conductor") != NULL);
         material.is_degamma= (element->Attribute("type", "degamma") != NULL);
 
-        child = element->FirstChildElement("AmbientReflectance");
+        auto child = element->FirstChildElement("AmbientReflectance");
         if( child != NULL)
         {
             stream << child->GetText() << std::endl;
@@ -1131,7 +1142,7 @@ void parser::Scene::loadFromXml(const std::string &filepath)
         mesh.transformation.Identity(); // set I 
         mesh.transformation_inverse.Identity(); // set I 
 
-        child = element->FirstChildElement("Material");
+        auto child = element->FirstChildElement("Material");
         if( child != NULL )
         {
         mesh.material_id = std::stoi(child->GetText());
@@ -1354,7 +1365,7 @@ void parser::Scene::loadFromXml(const std::string &filepath)
             
         }
 
-        child = element->FirstChildElement("Material");
+        auto child = element->FirstChildElement("Material");
         stream.clear();
         stream << child->GetText() << std::endl;
         std::cout << child->GetText() << std::endl; 
@@ -1445,7 +1456,7 @@ void parser::Scene::loadFromXml(const std::string &filepath)
         triangle.transformation.Identity();
         triangle.transformation_inverse.Identity();
 
-        child = element->FirstChildElement("Material");
+        auto child = element->FirstChildElement("Material");
         stream << child->GetText() << std::endl;
         stream >> triangle.material_id;
 
@@ -1502,7 +1513,7 @@ void parser::Scene::loadFromXml(const std::string &filepath)
         sphere.transformation.Identity();
         sphere.transformation_inverse.Identity();
 
-        child = element->FirstChildElement("Material");
+        auto child = element->FirstChildElement("Material");
         stream << child->GetText() << std::endl;
         sphere.material_id = std::stoi(child->GetText());
         std::cout << sphere.material_id << std::endl; 
@@ -1615,7 +1626,7 @@ void parser::Scene::loadFromXml(const std::string &filepath)
     {
         LightMesh mesh; 
 
-        child = element->FirstChildElement("Material");
+        auto child = element->FirstChildElement("Material");
         if( child != NULL )
         {
         mesh.material_id = std::stoi(child->GetText());
@@ -1656,9 +1667,13 @@ void parser::Scene::loadFromXml(const std::string &filepath)
                 ss >> face.v1_id;
                 ss >> face.v2_id;
 
-                mesh.faces.push_back(face);
+                face.v0_id += vertex_offset;
+                face.v1_id += vertex_offset;
+                face.v2_id += vertex_offset;
 
+                mesh.faces.push_back(face);
             }
+            mesh.faces.pop_back();
         }        
         else //ply file 
         {
@@ -1710,7 +1725,6 @@ void parser::Scene::loadFromXml(const std::string &filepath)
 
             }
             
-            
         }
         // radiance
         child = element->FirstChildElement("Radiance");
@@ -1743,6 +1757,45 @@ void parser::Scene::loadFromXml(const std::string &filepath)
         stream.clear();
         light_meshes.push_back(mesh );
         element = element->NextSiblingElement("LightMesh");
+    }
+
+    element = root->FirstChildElement("Objects");
+    element = element->FirstChildElement("LightSphere");
+    while( element )
+    {
+         LightSphere sphere;
+
+        auto child = element->FirstChildElement("Material");
+        stream << child->GetText() << std::endl;
+        sphere.material_id = std::stoi(child->GetText());
+        std::cout << sphere.material_id << std::endl; 
+
+        child = element->FirstChildElement("Center");
+        stream << child->GetText() << std::endl;
+        sphere.center_vertex_id = std::stoi(child->GetText());
+
+        child = element->FirstChildElement("Radius");
+        stream << child->GetText() << std::endl;
+        stream >> sphere.radius;
+        sphere.radius = std::stof(child->GetText());
+
+        
+        child = element->FirstChildElement("Radiance");
+        std::istringstream iss2(child->GetText());
+        std::string trans2 = child->GetText();
+        float arr[3];
+        int i = 0;
+        while(std::getline(iss2 , trans2 , ' '))
+        {
+            arr[i] = std::stof(trans2);
+            i++;
+        }
+        sphere.radiance.x = arr[0]; 
+        sphere.radiance.y = arr[1]; 
+        sphere.radiance.z = arr[2]; 
+        stream.clear();
+        light_spheres.push_back(sphere);
+        element = element->NextSiblingElement("LightSphere");
     }
 }
 // geometry functions

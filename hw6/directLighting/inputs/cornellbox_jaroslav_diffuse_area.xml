@@ -6,12 +6,12 @@
     <Cameras>
         <Camera id="1" type="lookAt" handedness="right">
             <Position>-0.0439815 -4.12529 0.222539</Position>
-            <Gaze>0.00688625 0.998505 -0.0542161</Gaze>
+            <GazePoint>0.00688625 0.998505 -0.0542161</GazePoint>
             <Up>3.73896e-4 0.0542148 0.998529</Up>
             <FovY>45</FovY>
             <NearDistance>0.1</NearDistance>
             <ImageResolution>512 512</ImageResolution>
-            <NumSamples>100</NumSamples>
+            <NumSamples>4</NumSamples>
             <ImageName>cornellbox_jaroslav_diffuse_area.exr</ImageName>
             <Tonemap>
                 <TMO>Photographic</TMO>

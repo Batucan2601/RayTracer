@@ -738,7 +738,7 @@ static bool calculate_intersection(parser::Scene& scene ,parser::MeshInstance& o
     
 }
 
-static bool ray_object_intersection( const Ray & ray , parser::Scene & scene , parser::Vec3f &hitpoint , parser::Vec3f & normal , parser::Material &material ,   int &  prev_object_id  , parser::Face &hit_face,  bool is_shadow_rays_active , bool & is_light_object_intersected )
+static bool ray_object_intersection( const Ray & ray , parser::Scene & scene , parser::Vec3f &hitpoint , parser::Vec3f & normal , parser::Material &material ,   int &  prev_object_id  , parser::Face &hit_face,  bool is_shadow_rays_active , bool & is_light_object_intersected , int & light_source_id )
 {
     std::vector<parser::Vec3f> hit_points;
     std::vector<parser::Vec3f> normals;
@@ -898,9 +898,10 @@ static bool ray_object_intersection( const Ray & ray , parser::Scene & scene , p
     {
         prev_object_id = object_id_list[smallest_index];
     }
-    if( object_id >= (scene.meshes.size() + scene.spheres.size() + scene.triangles.size() + scene.mesh_instances.size() ) )
+    if( object_id_list[smallest_index] >= (scene.meshes.size() + scene.spheres.size() + scene.triangles.size() + scene.mesh_instances.size() ))
     {
         is_light_object_intersected = true; 
+        light_source_id = object_id_list[smallest_index];
     }
     else
     {

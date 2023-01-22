@@ -20,7 +20,7 @@
                 <Gamma>2.2</Gamma>
             </Tonemap>
             <Renderer>PathTracing</Renderer>
-            <RendererParams>RussianRoulette</RendererParams>
+            <RendererParams>ImportanceSampling</RendererParams>
         </Camera>
     </Cameras>
 

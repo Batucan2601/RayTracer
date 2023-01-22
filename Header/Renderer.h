@@ -29,6 +29,8 @@ parser::Vec3f global_interval_col;
 std::vector< BVH::BoundingBox > bounding_boxes;
 static void generate_image(parser::Scene & scene)
 {
+    srand((unsigned) time(NULL));
+
     std::random_device rd;  // Will be used to obtain a seed for the random number engine
     std::mt19937 gen(rd()); // Standard mersenne_twister_engine seeded with rd()
     std::uniform_real_distribution<> dis(0.0 , 1.0);
@@ -71,6 +73,9 @@ static void generate_image(parser::Scene & scene)
         {
             sphere_env_open_hdr( scene.images[scene.spheredir_lights[0].image_id].path );
         }
+        //calculate the probabilities for light meshes and light spheres
+        calculate_total_area_light_mesh(scene);
+
         for (size_t y = 0; y < height; y++)
         {
             for (size_t x = 0; x < width; x++)
@@ -311,7 +316,8 @@ static parser::Vec3f color_pixel(parser::Scene& scene , Ray & ray )
     bool is_shadow_rays_active = false;
     bool is_light_object_intersected = false; 
     int object_id = -1; 
-    bool  is_object_hit = ray_object_intersection( ray , scene ,  hit_point , normal  , material   , object_id , hit_face, is_shadow_rays_active , is_light_object_intersected);
+    int light_object_id = -1; 
+    bool  is_object_hit = ray_object_intersection( ray , scene ,  hit_point , normal  , material   , object_id , hit_face, is_shadow_rays_active , is_light_object_intersected , light_object_id);
     if( !is_object_hit)
     {
         if( scene.spheredir_lights.size() > 0 ) // if env spherical 
@@ -328,20 +334,21 @@ static parser::Vec3f color_pixel(parser::Scene& scene , Ray & ray )
             return parser::Vec3f(-1.0f ,0.0f ,0.0f );
         }
     }
-    if( is_light_object_intersected && object_id >= scene.meshes.size() + scene.spheres.size() + scene.triangles.size() + scene.mesh_instances.size() )
+    if( is_light_object_intersected )
     {
-        if( object_id <  scene.meshes.size() + scene.spheres.size() + scene.triangles.size() + scene.mesh_instances.size() + scene.light_meshes.size() )
+        if( light_object_id <  scene.meshes.size() + scene.spheres.size() + scene.triangles.size() + scene.mesh_instances.size() + scene.light_meshes.size() )
         {
             //light mesh get object
-            parser::LightMesh* light_mesh_ptr =  &scene.light_meshes[object_id - ( scene.meshes.size() + scene.spheres.size() + scene.triangles.size() + scene.mesh_instances.size()) ];
+            parser::LightMesh* light_mesh_ptr =  &scene.light_meshes[light_object_id - ( scene.meshes.size() + scene.spheres.size() + scene.triangles.size() + scene.mesh_instances.size()) ];
             return light_mesh_ptr->radiance / ( parser::distance( ray.origin , hit_point));
         }
-        else if( object_id <  scene.meshes.size() + scene.spheres.size() + scene.triangles.size() + scene.mesh_instances.size() + scene.light_meshes.size() + scene.light_spheres.size() )
+        else if( light_object_id <  scene.meshes.size() + scene.spheres.size() + scene.triangles.size() + scene.mesh_instances.size() + scene.light_meshes.size() + scene.light_spheres.size() )
         {
-            parser::LightSphere* light_sphere_ptr =  &scene.light_spheres[object_id - ( scene.meshes.size() + scene.spheres.size() + scene.triangles.size() + scene.mesh_instances.size() + scene.light_meshes.size()) ];
+            parser::LightSphere* light_sphere_ptr =  &scene.light_spheres[light_object_id - ( scene.meshes.size() + scene.spheres.size() + scene.triangles.size() + scene.mesh_instances.size() + scene.light_meshes.size()) ];
             return light_sphere_ptr->radiance / ( parser::distance( ray.origin , hit_point));
         }
     }
+    
     //check texture
     parser::Vec3f texture_color; 
     parser::Material texture_material; 
@@ -439,7 +446,168 @@ static parser::Vec3f color_pixel(parser::Scene& scene , Ray & ray )
     }
     if( current_camera.is_next_event_estimation)
     {
+        // send a random ray to upper hemisphere
+         //sample hemisphere
+        float eps1 = dis_next_event_eps1(gen_next_event_eps1);
+        float eps2 = dis_next_event_eps2(gen_next_event_eps2);
 
+        float phi =  2 * M_PI * eps1;
+        float theta =  std::asin(std::sqrt(eps1));
+        //1 -  rotate phi around + y axis
+        //rotate phi degrees around 0
+        parser::Vec4f unit_vec;
+        unit_vec.x = 0.0f;
+        unit_vec.y = 0.0f;
+        unit_vec.z = -1.0f;
+        unit_vec.w = 1;
+
+        float Rx = 0.0f;
+        float Ry = 1.0f;
+        float Rz = 0.0f;
+
+        parser::Matrix s;
+        //rotation matrix 
+        //  x is degree 
+        // y z w arbitrary axis
+        float cosine_theta = std::cos( phi  );
+        float sine_theta = std::sin(   phi );
+        s.set(0, 0 , cosine_theta + Rx * Rx * (1 - cosine_theta )  );
+        s.set(0, 1 , Rx * Ry * (1 - cosine_theta ) - Rz * sine_theta  );  
+        s.set(0, 2 , Rx * Rz * (1 -cosine_theta ) + Ry *sine_theta );  
+        s.set(0, 3 , 0 );
+
+        s.set(1, 0 , Ry*Rx*(1-cosine_theta) + Rz*sine_theta);
+        s.set(1, 1 , cosine_theta + Ry*Ry*(1-cosine_theta) );
+        s.set(1, 2 , Ry*Rz*(1-cosine_theta)-Rx*sine_theta );
+        s.set(1, 3 , 0 );
+
+        s.set(2, 0 , Ry*Rx*(1-cosine_theta) - Ry*sine_theta);
+        s.set(2, 1 ,Rz*Ry*(1-cosine_theta) + Rx*sine_theta );
+        s.set(2, 2 , cosine_theta + Rz*Rz*(1-cosine_theta) );
+        s.set(2, 3 , 0 );
+
+        s.set(3,0,0);
+        s.set(3,1,0);
+        s.set(3,2,0);
+        s.set(3,3,1);  
+        
+        unit_vec = s * unit_vec;
+
+        parser::Matrix s2;
+        // theta around + x 
+        Rx = 1.0f;
+        Ry = 0.0f;
+        Rz = 0.0f;
+
+        cosine_theta = std::cos( theta );
+        sine_theta = std::sin( theta );
+        s2.set(0, 0 , cosine_theta + Rx * Rx * (1 - cosine_theta )  );
+        s2.set(0, 1 , Rx * Ry * (1 - cosine_theta ) - Rz * sine_theta  );  
+        s2.set(0, 2 , Rx * Rz * (1 -cosine_theta ) + Ry *sine_theta );  
+        s2.set(0, 3 , 0 );
+
+        s2.set(1, 0 , Ry*Rx*(1-cosine_theta) + Rz*sine_theta);
+        s2.set(1, 1 , cosine_theta + Ry*Ry*(1-cosine_theta) );
+        s2.set(1, 2 , Ry*Rz*(1-cosine_theta)-Rx*sine_theta );
+        s2.set(1, 3 , 0 );
+
+        s2.set(2, 0 , Ry*Rx*(1-cosine_theta) - Ry*sine_theta);
+        s2.set(2, 1 ,Rz*Ry*(1-cosine_theta) + Rx*sine_theta );
+        s2.set(2, 2 , cosine_theta + Rz*Rz*(1-cosine_theta) );
+        s2.set(2, 3 , 0 );
+
+        s2.set(3,0,0);
+        s2.set(3,1,0);
+        s2.set(3,2,0);
+        s2.set(3,3,1);  
+
+        unit_vec = s2 * unit_vec;
+        
+        unit_vec.x =   (unit_vec.x/unit_vec.w);
+        unit_vec.y =   (unit_vec.y/unit_vec.w);
+        unit_vec.z =   (unit_vec.z/unit_vec.w);
+
+
+        Ray random_next_event_ray( hit_point + parser::Vec3f(unit_vec.x , unit_vec.y ,unit_vec.z ) * 0.01f, hit_point + parser::Vec3f(unit_vec.x , unit_vec.y ,unit_vec.z ) );
+        
+        //toggle importance sampling in order to not have stack overflow 
+        current_camera.is_next_event_estimation = false; 
+        
+        parser::Vec3f temp_hitpoint;
+        parser::Material temp_material;
+        parser::Vec3f temp_normal;
+        parser::Face temp_hit_face;
+
+        int temp_object_id = -1; 
+        int temp_light_source_id = -1;
+        bool temp_is_light_objects_intersected = false; 
+        bool temp_is_shadow_rays_active = false; 
+
+        bool is_object_intersected = ray_object_intersection(random_next_event_ray  , scene , temp_hitpoint , temp_normal , temp_material , temp_object_id  ,temp_hit_face  , temp_is_shadow_rays_active , temp_is_light_objects_intersected , temp_light_source_id   );
+        color = color + color_pixel(scene , random_next_event_ray);
+        current_camera.is_next_event_estimation = true; 
+        // send a random ray to a random sampled light source
+        //now sample all light source objects ! 
+        int light_object_no  =  (rand() % ( scene.light_meshes.size()  + scene.light_spheres.size() )); //lazy calculation
+        
+        //check if two objecs are the same with two lights
+        bool is_same_light_source = false; 
+        if( temp_is_light_objects_intersected )
+        {
+            //if same light 
+            if( temp_light_source_id ==  light_object_no + scene.meshes.size() + scene.spheres.size() + scene.triangles.size() + scene.mesh_instances.size() )
+            {
+                is_same_light_source = true; 
+            }
+            
+        }
+        //calculate 
+        if(!is_same_light_source)
+        {
+            // convert light object to either sphere or mesh
+            if( light_object_no  <= scene.meshes.size() + scene.spheres.size() + scene.triangles.size() + scene.mesh_instances.size() + scene.light_meshes.size()  )
+            {
+                int light_mesh_no = light_object_no;//light_object_no - (scene.meshes.size() + scene.spheres.size() + scene.triangles.size() + scene.mesh_instances.size());
+                //get a random number for triangle
+                float random = dis_next_event(gen_next_event);
+                parser::Face triangle_face;  
+                parser::Vec3f random_point; 
+                for (size_t i = 0; i < light_mesh_cdf.size() ; i++)
+                {
+                    if( random <= light_mesh_cdf[ light_mesh_no ][i] )
+                    {
+                        //got the random triange 
+                        triangle_face = scene.light_meshes[light_mesh_no].faces[i];
+                        random_point = calculate_random_point_inside_triangle(triangle_face); 
+                    }
+                }
+                // generate ray
+                Ray global_illumination_ray( hit_point , random_point );
+                current_camera.is_next_event_estimation = false; 
+                parser::Vec3f new_color = color_pixel( scene , global_illumination_ray );
+                current_camera.is_next_event_estimation = true; 
+                float probability =  std::pow( parser::distance( hit_point , random_point )  , 2 ) / light_mesh_areas[light_mesh_no];
+                new_color = new_color / probability; 
+                
+            }
+            else //sample sphere 
+            {
+                int light_mesh_no = light_object_no - scene.light_meshes.size();
+                float cosine_theta; 
+                parser::Vec3f sampled_point = calculate_random_point_on_sphere(hit_point , scene.light_spheres[light_mesh_no] , cosine_theta );
+                // generate ray
+                Ray global_illumination_ray( hit_point , sampled_point );
+                current_camera.is_next_event_estimation = false; 
+                parser::Vec3f new_color = color_pixel( scene , global_illumination_ray );
+                current_camera.is_next_event_estimation = true; 
+                float probability =   2 * M_PI  * ( 1 - cosine_theta); 
+                new_color = new_color / probability;
+
+            }
+
+        }
+
+        //if not hit same object hit them
     }
     
     bool is_intersection_textured = is_texture_present(  scene ,   object_id ,  hit_point  ,  normal , hit_face ,  texture_color ,  texture_material);
@@ -465,10 +633,26 @@ static parser::Vec3f color_pixel(parser::Scene& scene , Ray & ray )
         parser::Vec3f normal_temp;
         parser::Material material_temp;  
         bool is_light_object_intersected  = false; 
-        bool  is_object_hit = ray_object_intersection( shadow_ray , scene ,  hit_point_temp , normal_temp , material_temp , object_id , hit_face_temp ,  is_shadow_rays_active , is_light_object_intersected);
+        int light_object_id = -1; 
+        bool  is_object_hit = ray_object_intersection( shadow_ray , scene ,  hit_point_temp , normal_temp , material_temp , object_id , hit_face_temp ,  is_shadow_rays_active , is_light_object_intersected , light_object_id);
         
         if( is_object_hit ) // it is in shadow no contribution from light
         {
+            //check if hit by light mesh or light sphere
+            if( is_light_object_intersected && light_object_id >= scene.meshes.size() + scene.spheres.size() + scene.triangles.size() + scene.mesh_instances.size() )
+            {
+                if( light_object_id <  scene.meshes.size() + scene.spheres.size() + scene.triangles.size() + scene.mesh_instances.size() + scene.light_meshes.size() )
+                {
+                    //light mesh get object
+                    parser::LightMesh* light_mesh_ptr =  &scene.light_meshes[light_object_id - ( scene.meshes.size() + scene.spheres.size() + scene.triangles.size() + scene.mesh_instances.size()) ];
+                    return light_mesh_ptr->radiance / ( parser::distance( shadow_ray.origin , hit_point_temp));
+                }
+                else if( light_object_id <  scene.meshes.size() + scene.spheres.size() + scene.triangles.size() + scene.mesh_instances.size() + scene.light_meshes.size() + scene.light_spheres.size() )
+                {
+                    parser::LightSphere* light_sphere_ptr =  &scene.light_spheres[light_object_id - ( scene.meshes.size() + scene.spheres.size() + scene.triangles.size() + scene.mesh_instances.size() + scene.light_meshes.size()) ];
+                    return light_sphere_ptr->radiance / ( parser::distance( shadow_ray.origin , hit_point_temp));
+                }
+            }
             if( parser::distance(hit_point_temp , hit_point) < parser::distance(hit_point, light_pos) ) //before light source 
             {
                 continue; 
@@ -651,7 +835,8 @@ static parser::Vec3f color_pixel(parser::Scene& scene , Ray & ray )
         parser::Face hit_face_temp;
         
         bool is_light_object_intersected  = false; 
-        bool  is_object_hit = ray_object_intersection( shadow_ray , scene ,  hit_point_temp , normal_temp , material_temp , object_id , hit_face_temp , is_shadow_rays_active , is_light_object_intersected);
+        int light_object_id = -1; 
+        bool  is_object_hit = ray_object_intersection( shadow_ray , scene ,  hit_point_temp , normal_temp , material_temp , object_id , hit_face_temp , is_shadow_rays_active , is_light_object_intersected , light_object_id);
         
         //before that calculate t of light pos //also pass  
         float light_pos_t = (p.x - shadow_ray.origin.x )  / shadow_ray.direction.x;
@@ -715,8 +900,8 @@ static parser::Vec3f color_pixel(parser::Scene& scene , Ray & ray )
         parser::Vec3f normal_temp;
         parser::Material material_temp;  
         bool is_light_object_intersected  = false; 
-
-        bool  is_object_hit = ray_object_intersection( shadow_ray , scene ,  hit_point_temp , normal_temp , material_temp , object_id , hit_face_temp ,  is_shadow_rays_active , is_light_object_intersected );
+        int light_object_id = -1; 
+        bool  is_object_hit = ray_object_intersection( shadow_ray , scene ,  hit_point_temp , normal_temp , material_temp , object_id , hit_face_temp ,  is_shadow_rays_active , is_light_object_intersected , light_object_id  );
         
         if( is_object_hit ) // it is in shadow no contribution from light
         {
@@ -792,7 +977,8 @@ static parser::Vec3f color_pixel(parser::Scene& scene , Ray & ray )
         parser::Vec3f normal_temp;
         parser::Material material_temp;  
         bool is_light_object_intersected  = false; 
-        bool  is_object_hit = ray_object_intersection( shadow_ray , scene ,  hit_point_temp , normal_temp , material_temp , object_id , hit_face_temp ,  is_shadow_rays_active , is_light_object_intersected);
+        int light_object_id = -1; 
+        bool  is_object_hit = ray_object_intersection( shadow_ray , scene ,  hit_point_temp , normal_temp , material_temp , object_id , hit_face_temp ,  is_shadow_rays_active , is_light_object_intersected , light_object_id);
         
         if( is_object_hit ) // it is in shadow no contribution from light
         {
@@ -896,7 +1082,7 @@ static parser::Vec3f color_pixel(parser::Scene& scene , Ray & ray )
     {
         if( current_camera.is_next_event_estimation )
         {
-            //do sampling I dont know how
+            
         }
     }
     is_shadow_rays_active = true; 
