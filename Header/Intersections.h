@@ -982,7 +982,7 @@ static bool calculate_intersection(parser::Scene& scene ,parser::LightMesh& obje
     
 }
 // a light sphere intersection 
-static bool calculate_intersection(parser::Scene& scene ,parser::LightSphere& object , const Ray & ray , parser::Vec3f & intersection_normal ,  parser::Vec3f & intersection_point , bool is_shadow_rays_active )
+bool calculate_intersection(parser::Scene& scene ,parser::LightSphere& object , const Ray & ray , parser::Vec3f & intersection_normal ,  parser::Vec3f & intersection_point , bool is_shadow_rays_active )
 {
     parser::Vec3f center = parser::Vec3f(scene.vertex_data[object.center_vertex_id-1].x , scene.vertex_data[object.center_vertex_id-1 ].y  , scene.vertex_data[object.center_vertex_id-1].z );
     parser::Sphere s;

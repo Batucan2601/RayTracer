@@ -14,7 +14,7 @@
                 "/home/batu/Desktop/RayTracer/RayTracer/Header",
                 "/home/batu/Desktop/RayTracer/RayTracer/System_Files/support_files"
             ],
-            "args": ["/home/batu/Desktop/RayTracer/RayTracer/hw6/directLighting/inputs/cornellbox_jaroslav_glossy_area_sphere.xml"],
+            "args": ["/home/batu/Desktop/RayTracer/RayTracer/hw6/pathTracing/inputs/cornellbox_jaroslav_path_diffuse.xml"],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",
             "environment": [],

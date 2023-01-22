@@ -49,4 +49,4 @@ parser::Vec3f get_nearest_coord_color_hdr(  parser::TextureMap & texturemap , fl
 parser::Vec3f get_BRDF(const parser::Scene & scene , const parser::Material &material , const float& alpha_angle , const float& theta_angle , const float & cos_half_vec , const parser::Camera & current_camera  , const parser::Vec3f & wi , const parser::Vec3f & wo , const parser::Vec3f & wh ,const parser::Vec3f & normal     );
 static bool calculate_intersection(parser::Scene& scene ,parser::LightMesh& object ,const Ray & ray , parser::Vec3f & intersection_normal ,  parser::Vec3f & intersection_point , parser::Face & hit_face , bool is_shadow_rays_active  );
 static bool calculate_intersection(parser::Scene& scene ,parser::LightSphere& object , const Ray & ray , parser::Vec3f & intersection_normal ,  parser::Vec3f & intersection_point , bool is_shadow_rays_active );
-parser::Vec3f calculate_random_point_on_sphere(  parser::Vec3f &hit_point , const parser::LightSphere & sphere , float & cosine_theta_max_input );
+parser::Vec3f calculate_random_point_on_sphere(   parser::Scene & scene  , parser::Vec3f &hit_point ,  parser::LightSphere & sphere , float & cosine_theta_max_input );

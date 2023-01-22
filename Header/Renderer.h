@@ -578,7 +578,7 @@ static parser::Vec3f color_pixel(parser::Scene& scene , Ray & ray )
                     {
                         //got the random triange 
                         triangle_face = scene.light_meshes[light_mesh_no].faces[i];
-                        random_point = calculate_random_point_inside_triangle(triangle_face); 
+                        random_point = calculate_random_point_inside_triangle(scene , triangle_face); 
                     }
                 }
                 // generate ray
@@ -594,7 +594,7 @@ static parser::Vec3f color_pixel(parser::Scene& scene , Ray & ray )
             {
                 int light_mesh_no = light_object_no - scene.light_meshes.size();
                 float cosine_theta; 
-                parser::Vec3f sampled_point = calculate_random_point_on_sphere(hit_point , scene.light_spheres[light_mesh_no] , cosine_theta );
+                parser::Vec3f sampled_point = calculate_random_point_on_sphere(scene , hit_point , scene.light_spheres[light_mesh_no] , cosine_theta );
                 // generate ray
                 Ray global_illumination_ray( hit_point , sampled_point );
                 current_camera.is_next_event_estimation = false; 
